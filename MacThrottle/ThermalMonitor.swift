@@ -69,10 +69,21 @@ final class ThermalMonitor {
 
     private let stateFilePath = "/tmp/mac-throttle-thermal-state"
 
-    var notificationsEnabled: Bool = UserDefaults.standard.bool(forKey: "notificationsEnabled") {
-        didSet {
-            UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled")
-        }
+    // Notification settings
+    var notifyOnHeavy: Bool = UserDefaults.standard.object(forKey: "notifyOnHeavy") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(notifyOnHeavy, forKey: "notifyOnHeavy") }
+    }
+
+    var notifyOnCritical: Bool = UserDefaults.standard.object(forKey: "notifyOnCritical") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(notifyOnCritical, forKey: "notifyOnCritical") }
+    }
+
+    var notifyOnRecovery: Bool = UserDefaults.standard.object(forKey: "notifyOnRecovery") as? Bool ?? false {
+        didSet { UserDefaults.standard.set(notifyOnRecovery, forKey: "notifyOnRecovery") }
+    }
+
+    var notificationSound: Bool = UserDefaults.standard.object(forKey: "notificationSound") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(notificationSound, forKey: "notificationSound") }
     }
 
     init() {
@@ -108,13 +119,31 @@ final class ThermalMonitor {
         let newPressure = state.thermalPressure
 
         if newPressure != previousPressure {
-            if notificationsEnabled && newPressure.isThrottling && !previousPressure.isThrottling {
+            // Check for throttling notifications
+            if shouldNotify(for: newPressure, previous: previousPressure) {
                 sendThrottleNotification(pressure: newPressure)
             }
+
+            // Check for recovery notification
+            if notifyOnRecovery && previousPressure.isThrottling && !newPressure.isThrottling && newPressure != .unknown {
+                sendRecoveryNotification()
+            }
+
             previousPressure = newPressure
         }
 
         pressure = newPressure
+    }
+
+    private func shouldNotify(for pressure: ThermalPressure, previous: ThermalPressure) -> Bool {
+        switch pressure {
+        case .heavy:
+            return notifyOnHeavy && !previous.isThrottling
+        case .trapping, .sleeping:
+            return notifyOnCritical && (previous != .trapping && previous != .sleeping)
+        default:
+            return false
+        }
     }
 
     private func requestNotificationPermission() {
@@ -127,7 +156,26 @@ final class ThermalMonitor {
         content.body = pressure == .trapping || pressure == .sleeping
             ? "Your Mac is severely throttled!"
             : "Your Mac is being throttled (Heavy pressure)"
-        content.sound = .default
+        if notificationSound {
+            content.sound = .default
+        }
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func sendRecoveryNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Thermal Pressure Recovered"
+        content.body = "Your Mac is no longer being throttled"
+        if notificationSound {
+            content.sound = .default
+        }
 
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,

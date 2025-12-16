@@ -116,7 +116,13 @@ struct MenuContent: View {
         Divider()
 
         if monitor.daemonRunning {
-            Toggle("Notify on Throttle", isOn: $monitor.notificationsEnabled)
+            Menu("Notifications") {
+                Toggle("On Heavy", isOn: $monitor.notifyOnHeavy)
+                Toggle("On Critical", isOn: $monitor.notifyOnCritical)
+                Toggle("On Recovery", isOn: $monitor.notifyOnRecovery)
+                Divider()
+                Toggle("Sound", isOn: $monitor.notificationSound)
+            }
 
             Divider()
 

@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct MacThrottleApp: App {
     @State private var monitor = ThermalMonitor()
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         MenuBarExtra {
@@ -10,6 +11,41 @@ struct MacThrottleApp: App {
         } label: {
             MenuBarIcon(pressure: monitor.pressure)
         }
+
+        Window("About MacThrottle", id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+    }
+}
+
+struct AboutView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(nsImage: NSImage(named: "AppIcon") ?? NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 128, height: 128)
+                .cornerRadius(24)
+
+            Text("MacThrottle")
+                .font(.title)
+                .fontWeight(.bold)
+
+            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Text("Monitor your Mac's thermal pressure\nand get notified when throttling occurs.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+
+            Link("View on GitHub", destination: URL(string: "https://github.com/angristan/MacThrottle")!)
+                .font(.caption)
+        }
+        .padding(32)
+        .frame(width: 300)
     }
 }
 
@@ -91,10 +127,21 @@ struct MenuContent: View {
 
         Divider()
 
+        Button("About MacThrottle") {
+            openAboutWindow()
+        }
+
         Button("Quit") {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+    }
+
+    @Environment(\.openWindow) private var openWindow
+
+    private func openAboutWindow() {
+        openWindow(id: "about")
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func installHelper() {

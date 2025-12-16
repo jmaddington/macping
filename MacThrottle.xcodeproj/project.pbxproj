@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1000001229E8F1100000001 /* MacThrottleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002229E8F1100000001 /* MacThrottleApp.swift */; };
 		A1000003229E8F1100000001 /* ThermalMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004229E8F1100000001 /* ThermalMonitor.swift */; };
+		A1000015229E8F1100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000016229E8F1100000001 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -16,6 +17,7 @@
 		A1000004229E8F1100000001 /* ThermalMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitor.swift; sourceTree = "<group>"; };
 		A1000005229E8F1100000001 /* MacThrottle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacThrottle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000006229E8F1100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1000016229E8F1100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +44,7 @@
 			children = (
 				A1000002229E8F1100000001 /* MacThrottleApp.swift */,
 				A1000004229E8F1100000001 /* ThermalMonitor.swift */,
+				A1000016229E8F1100000001 /* Assets.xcassets */,
 				A1000006229E8F1100000001 /* Info.plist */,
 			);
 			path = MacThrottle;
@@ -113,6 +116,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000015229E8F1100000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

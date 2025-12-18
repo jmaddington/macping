@@ -72,27 +72,24 @@ struct HistoryGraphView: View {
 
                 guard totalDuration > 0 else { return }
 
-                // Draw thermal pressure background segments
-                for i in 0..<(sampled.count - 1) {
-                    let current = sampled[i]
-                    let next = sampled[i + 1]
+                // Draw thermal pressure background as merged segments by pressure state
+                var currentPressure = sampled[0].pressure
+                var segmentStart: CGFloat = 0
 
-                    let startFraction = current.timestamp.timeIntervalSince(startTime) / totalDuration
-                    let endFraction = next.timestamp.timeIntervalSince(startTime) / totalDuration
-                    let startX = floor(CGFloat(startFraction) * size.width)
-                    let endX = ceil(CGFloat(endFraction) * size.width)
+                for i in 0..<sampled.count {
+                    let entry = sampled[i]
+                    let x = CGFloat(entry.timestamp.timeIntervalSince(startTime) / totalDuration) * size.width
 
-                    let rect = CGRect(x: startX, y: 0, width: max(endX - startX, 1), height: size.height)
-                    context.fill(Path(rect), with: .color(current.pressure.color.opacity(0.3)))
+                    if entry.pressure != currentPressure {
+                        let rect = CGRect(x: segmentStart, y: 0, width: x - segmentStart, height: size.height)
+                        context.fill(Path(rect), with: .color(currentPressure.color.opacity(0.3)))
+                        currentPressure = entry.pressure
+                        segmentStart = x
+                    }
                 }
-
-                // Draw last segment to now
-                if let last = sampled.last {
-                    let lastFraction = last.timestamp.timeIntervalSince(startTime) / totalDuration
-                    let startX = floor(CGFloat(lastFraction) * size.width)
-                    let rect = CGRect(x: startX, y: 0, width: size.width - startX, height: size.height)
-                    context.fill(Path(rect), with: .color(last.pressure.color.opacity(0.3)))
-                }
+                // Draw final segment to end
+                let finalRect = CGRect(x: segmentStart, y: 0, width: size.width - segmentStart, height: size.height)
+                context.fill(Path(finalRect), with: .color(currentPressure.color.opacity(0.3)))
 
                 // Draw temperature line
                 var tempPath = Path()

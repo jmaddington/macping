@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/angristan/MacThrottle/compare/v1.4.1...v1.5.0) (2025-12-22)
+
+
+### Features
+
+* add fan speed graph with dual Y-axis ([753e7f4](https://github.com/angristan/MacThrottle/commit/753e7f4dfa8b36ece239b8e1307051c03abd339b))
+
 ## [1.4.1](https://github.com/angristan/MacThrottle/compare/v1.4.0...v1.4.1) (2025-12-19)
 
 

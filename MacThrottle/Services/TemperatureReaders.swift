@@ -43,6 +43,11 @@ private extension FourCharCode {
     }
 }
 
+struct FanSpeed {
+    let rpm: Double
+    let percentage: Double  // 0-100%
+}
+
 final class SMCReader {
     nonisolated(unsafe) static let shared = SMCReader()
 
@@ -53,6 +58,9 @@ final class SMCReader {
     private let m1Keys = ["Tp01", "Tp05", "Tp09", "Tp0D", "Tp0H", "Tp0L", "Tp0P", "Tp0X", "Tp0b"]
     private let m2Keys = ["Tp01", "Tp05", "Tp09", "Tp0D", "Tp0X", "Tp0b", "Tp0f", "Tp0j"]
     private let m3Keys = ["Tf04", "Tf09", "Tf0A", "Tf0B", "Tf0D", "Tf0E", "Tf44", "Tf49", "Tf4A", "Tf4B"]
+
+    // Cached fan count (0 = not yet read, -1 = no fans)
+    private var cachedFanCount: Int?
 
     private init() {
         connect()
@@ -94,6 +102,105 @@ final class SMCReader {
         }
 
         return maxTemp > 0 ? maxTemp : nil
+    }
+
+    /// Returns the average fan speed across all fans, or nil if no fans or reading failed
+    func readFanSpeed() -> FanSpeed? {
+        guard isConnected else { return nil }
+
+        let fanCount = getFanCount()
+        guard fanCount > 0 else { return nil }
+
+        var totalRPM: Double = 0
+        var totalPercentage: Double = 0
+        var validReadings = 0
+
+        for i in 0..<fanCount {
+            if let actual = readFanValue(fan: i, key: "Ac"),
+               let max = readFanValue(fan: i, key: "Mx"),
+               max > 0 {
+                totalRPM += actual
+                totalPercentage += (actual / max) * 100
+                validReadings += 1
+            }
+        }
+
+        guard validReadings > 0 else { return nil }
+
+        return FanSpeed(
+            rpm: totalRPM / Double(validReadings),
+            percentage: min(100, totalPercentage / Double(validReadings))
+        )
+    }
+
+    private func getFanCount() -> Int {
+        if let cached = cachedFanCount {
+            return cached
+        }
+
+        guard let value = readUInt8(key: "FNum") else {
+            cachedFanCount = 0
+            return 0
+        }
+
+        cachedFanCount = Int(value)
+        return Int(value)
+    }
+
+    private func readFanValue(fan: Int, key: String) -> Double? {
+        // Fan keys are like "F0Ac", "F1Mx", etc.
+        let fullKey = "F\(fan)\(key)"
+        return readFloat(key: fullKey)
+    }
+
+    private func readUInt8(key: String) -> UInt8? {
+        var input = SMCKeyData()
+        var output = SMCKeyData()
+
+        input.key = FourCharCode(fromString: key)
+        input.data8 = 9 // kSMCReadKeyInfo
+
+        guard call(input: &input, output: &output) == kIOReturnSuccess else { return nil }
+
+        let dataSize = output.keyInfo.dataSize
+        guard dataSize >= 1 else { return nil }
+
+        input.keyInfo.dataSize = dataSize
+        input.data8 = 5 // kSMCReadBytes
+
+        guard call(input: &input, output: &output) == kIOReturnSuccess else { return nil }
+
+        return output.bytes.0
+    }
+
+    private func readFloat(key: String) -> Double? {
+        var input = SMCKeyData()
+        var output = SMCKeyData()
+
+        input.key = FourCharCode(fromString: key)
+        input.data8 = 9 // kSMCReadKeyInfo
+
+        guard call(input: &input, output: &output) == kIOReturnSuccess else { return nil }
+
+        let dataSize = output.keyInfo.dataSize
+        input.keyInfo.dataSize = dataSize
+        input.data8 = 5 // kSMCReadBytes
+
+        guard call(input: &input, output: &output) == kIOReturnSuccess else { return nil }
+
+        // flt type (4 bytes float) - used by Apple Silicon
+        if dataSize == 4 {
+            let bytes = [output.bytes.0, output.bytes.1, output.bytes.2, output.bytes.3]
+            return Double(bytes.withUnsafeBytes { $0.load(as: Float.self) })
+        }
+
+        // fpe2 type (2 bytes fixed point) - used by some older keys
+        if dataSize == 2 {
+            let value = (UInt16(output.bytes.0) << 8) | UInt16(output.bytes.1)
+            return Double(value) / 4.0
+        }
+
+        return nil
     }
 
     private func readTemperature(key: String) -> Double? {

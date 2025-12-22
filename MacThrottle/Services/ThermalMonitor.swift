@@ -6,6 +6,8 @@ import UserNotifications
 final class ThermalMonitor {
     private(set) var pressure: ThermalPressure = .unknown
     private(set) var temperature: Double?
+    private(set) var fanSpeed: Double?  // Percentage 0-100%
+    private(set) var hasFans: Bool = false
     private(set) var history: [HistoryEntry] = []
     private var timer: Timer?
     private var previousPressure: ThermalPressure = .unknown
@@ -27,6 +29,11 @@ final class ThermalMonitor {
 
     var notificationSound: Bool = UserDefaults.standard.object(forKey: "notificationSound") as? Bool ?? false {
         didSet { UserDefaults.standard.set(notificationSound, forKey: "notificationSound") }
+    }
+
+    // Graph settings
+    var showFanSpeed: Bool = UserDefaults.standard.object(forKey: "showFanSpeed") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showFanSpeed, forKey: "showFanSpeed") }
     }
 
     var timeInEachState: [(pressure: ThermalPressure, duration: TimeInterval)] {
@@ -99,8 +106,19 @@ final class ThermalMonitor {
         temperature = SMCReader.shared.readCPUTemperature()
             ?? HIDTemperatureReader.shared.readCPUTemperature()
 
+        // Read fan speed
+        if let fan = SMCReader.shared.readFanSpeed() {
+            fanSpeed = fan.percentage
+            if !hasFans { hasFans = true }
+        }
+
         // Record history
-        let entry = HistoryEntry(pressure: newPressure, temperature: temperature, timestamp: Date())
+        let entry = HistoryEntry(
+            pressure: newPressure,
+            temperature: temperature,
+            fanSpeed: fanSpeed,
+            timestamp: Date()
+        )
         history.append(entry)
 
         // Trim old entries

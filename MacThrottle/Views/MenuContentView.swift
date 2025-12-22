@@ -30,7 +30,7 @@ struct MenuContentView: View {
             .font(.headline)
 
             if monitor.history.count >= 2 {
-                HistoryGraphView(history: monitor.history)
+                HistoryGraphView(history: monitor.history, showFanSpeed: monitor.showFanSpeed)
             }
 
             if !monitor.timeInEachState.isEmpty {
@@ -55,6 +55,11 @@ struct MenuContentView: View {
                 set: { LaunchAtLoginManager.shared.isEnabled = $0 }
             ))
             .controlSize(.small)
+
+            if monitor.hasFans {
+                Toggle("Show Fan Speed", isOn: $monitor.showFanSpeed)
+                    .controlSize(.small)
+            }
 
             Divider()
 

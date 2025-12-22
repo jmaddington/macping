@@ -9,6 +9,7 @@ private struct WidthPreferenceKey: PreferenceKey {
 
 struct HistoryGraphView: View {
     let history: [HistoryEntry]
+    var showFanSpeed: Bool = true
     @State private var hoverLocation: CGPoint?
 
     private let maxPoints = 300
@@ -45,10 +46,20 @@ struct HistoryGraphView: View {
         return (minTemp, maxTemp)
     }
 
+    private var hasFanData: Bool {
+        showFanSpeed && downsampledHistory.contains { $0.fanSpeed != nil }
+    }
+
     private func yPositionForTemperature(_ temp: Double, height: CGFloat) -> CGFloat {
         let range = temperatureRange
         let padding: CGFloat = 4
         let normalized = (temp - range.min) / (range.max - range.min)
+        return padding + (1.0 - CGFloat(normalized)) * (height - padding * 2)
+    }
+
+    private func yPositionForFanSpeed(_ percentage: Double, height: CGFloat) -> CGFloat {
+        let padding: CGFloat = 4
+        let normalized = percentage / 100.0
         return padding + (1.0 - CGFloat(normalized)) * (height - padding * 2)
     }
 
@@ -143,6 +154,45 @@ struct HistoryGraphView: View {
 
             context.stroke(tempPath, with: .color(.primary.opacity(0.8)), lineWidth: 1.5)
 
+            // Draw fan speed line (if data available)
+            let fanColor = Color.cyan
+            if hasFanData {
+                var fanPath = Path()
+                var firstFanPoint = true
+
+                for entry in sampled {
+                    guard let fan = entry.fanSpeed else { continue }
+
+                    let x = CGFloat(entry.timestamp.timeIntervalSince(startTime) / totalDuration) * size.width
+                    let y = yPositionForFanSpeed(fan, height: size.height)
+
+                    if firstFanPoint {
+                        fanPath.move(to: CGPoint(x: x, y: y))
+                        firstFanPoint = false
+                    } else {
+                        fanPath.addLine(to: CGPoint(x: x, y: y))
+                    }
+                }
+
+                if let last = sampled.last, let fan = last.fanSpeed {
+                    let y = yPositionForFanSpeed(fan, height: size.height)
+                    fanPath.addLine(to: CGPoint(x: size.width, y: y))
+                }
+
+                context.stroke(
+                    fanPath,
+                    with: .color(fanColor.opacity(0.5)),
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 2])
+                )
+
+                // Current fan speed point (smaller)
+                if let last = sampled.last, let fan = last.fanSpeed {
+                    let y = yPositionForFanSpeed(fan, height: size.height)
+                    let circle = Path(ellipseIn: CGRect(x: size.width - 3, y: y - 3, width: 6, height: 6))
+                    context.fill(circle, with: .color(fanColor.opacity(0.7)))
+                }
+            }
+
             // Current temperature point
             if let last = sampled.last, let temp = last.temperature {
                 let y = yPositionForTemperature(temp, height: size.height)
@@ -150,7 +200,7 @@ struct HistoryGraphView: View {
                 context.fill(circle, with: .color(.primary))
             }
 
-            // Temperature range labels
+            // Temperature range labels (left side)
             let range = temperatureRange
             let labelStyle = Font.system(size: 8)
             let labelColor = Color.secondary.opacity(0.8)
@@ -159,6 +209,14 @@ struct HistoryGraphView: View {
             context.draw(maxLabel, at: CGPoint(x: 4, y: 4), anchor: .topLeading)
             context.draw(minLabel, at: CGPoint(x: 4, y: size.height - 4), anchor: .bottomLeading)
 
+            // Fan speed range labels (right side)
+            if hasFanData {
+                let fanMaxLabel = Text("100%").font(labelStyle).foregroundColor(fanColor.opacity(0.8))
+                let fanMinLabel = Text("0%").font(labelStyle).foregroundColor(fanColor.opacity(0.8))
+                context.draw(fanMaxLabel, at: CGPoint(x: size.width - 4, y: 4), anchor: .topTrailing)
+                context.draw(fanMinLabel, at: CGPoint(x: size.width - 4, y: size.height - 4), anchor: .bottomTrailing)
+            }
+
             // Hover indicator
             if let location = hoverLocation, let entry = entryAt(x: location.x, width: size.width) {
                 var linePath = Path()
@@ -166,11 +224,20 @@ struct HistoryGraphView: View {
                 linePath.addLine(to: CGPoint(x: location.x, y: size.height))
                 context.stroke(linePath, with: .color(.primary.opacity(0.3)), lineWidth: 1)
 
+                // Temperature hover point
                 if let temp = entry.temperature {
                     let y = yPositionForTemperature(temp, height: size.height)
                     let circle = Path(ellipseIn: CGRect(x: location.x - 4, y: y - 4, width: 8, height: 8))
                     context.fill(circle, with: .color(entry.pressure.color))
                     context.stroke(circle, with: .color(.primary), lineWidth: 1.5)
+                }
+
+                // Fan speed hover point (smaller, subtler)
+                if hasFanData, let fan = entry.fanSpeed {
+                    let y = yPositionForFanSpeed(fan, height: size.height)
+                    let circle = Path(ellipseIn: CGRect(x: location.x - 3, y: y - 3, width: 6, height: 6))
+                    context.fill(circle, with: .color(fanColor.opacity(0.8)))
+                    context.stroke(circle, with: .color(.primary.opacity(0.6)), lineWidth: 1)
                 }
             }
         }
@@ -194,7 +261,8 @@ struct HistoryGraphView: View {
             if let temp = entry.temperature {
                 let timeAgo = Int(Date().timeIntervalSince(entry.timestamp))
                 let timeStr = timeAgo < 60 ? "\(timeAgo)s ago" : "\(timeAgo / 60)m ago"
-                Text("\(Int(temp))° • \(entry.pressure.displayName) • \(timeStr)")
+                let fanStr = showFanSpeed ? entry.fanSpeed.map { " • Fan \(Int($0))%" } ?? "" : ""
+                Text("\(Int(temp))° • \(entry.pressure.displayName)\(fanStr) • \(timeStr)")
                     .font(.system(size: 8, weight: .medium))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)

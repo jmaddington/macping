@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/angristan/MacThrottle/compare/v1.5.1...v1.5.2) (2025-12-29)
+
+
+### Bug Fixes
+
+* add missing temperature sensor keys for M1-M4 chips ([38543ab](https://github.com/angristan/MacThrottle/commit/38543ab6e612bd11d1851a99aa944b78e8c5159e)), closes [#7](https://github.com/angristan/MacThrottle/issues/7)
+
 ## [1.5.1](https://github.com/angristan/MacThrottle/compare/v1.5.0...v1.5.1) (2025-12-28)
 
 

@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/angristan/MacThrottle/compare/v1.7.0...v1.7.1) (2025-12-29)
+
+
+### Bug Fixes
+
+* invalid temperature reading in release builds ([#11](https://github.com/angristan/MacThrottle/issues/11)) ([6476b5b](https://github.com/angristan/MacThrottle/commit/6476b5bac1043ec5245774a5527c4612f614012d))
+
 # [1.7.0](https://github.com/angristan/MacThrottle/compare/v1.6.1...v1.7.0) (2025-12-29)
 
 

@@ -11,8 +11,18 @@ final class LatencyMonitor {
     // MARK: - Constants
 
     private static let historyDurationSeconds: TimeInterval = 600  // 10 minutes
-    private static let pollIntervalSeconds: TimeInterval = 3.0
     private static let pingTimeoutSeconds: TimeInterval = 2.0
+
+    // MARK: - Configurable Poll Interval
+
+    static let pollIntervalOptions: [Double] = [1, 2, 3, 5, 10]
+
+    var pollIntervalSeconds: Double = UserDefaults.standard.object(forKey: "pollIntervalSeconds") as? Double ?? 3.0 {
+        didSet {
+            UserDefaults.standard.set(pollIntervalSeconds, forKey: "pollIntervalSeconds")
+            restartTimer()
+        }
+    }
 
     // MARK: - Observable State
 
@@ -174,7 +184,17 @@ final class LatencyMonitor {
             await self?.updateLatencyState()
         }
 
-        timer = Timer.scheduledTimer(withTimeInterval: Self.pollIntervalSeconds, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: pollIntervalSeconds, repeats: true) { [weak self] _ in
+            Task { [weak self] in
+                await self?.updateLatencyState()
+            }
+        }
+    }
+
+    @MainActor
+    private func restartTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: pollIntervalSeconds, repeats: true) { [weak self] _ in
             Task { [weak self] in
                 await self?.updateLatencyState()
             }

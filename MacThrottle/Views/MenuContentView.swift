@@ -95,6 +95,20 @@ struct MenuContentView: View {
             Toggle("Show Latency in Menu Bar", isOn: $monitor.showLatencyInMenuBar)
                 .controlSize(.small)
 
+            HStack {
+                Text("Poll Interval:")
+                Spacer()
+                Picker("", selection: $monitor.pollIntervalSeconds) {
+                    ForEach(LatencyMonitor.pollIntervalOptions, id: \.self) { interval in
+                        Text("\(Int(interval))s").tag(interval)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(width: 60)
+            }
+            .controlSize(.small)
+
             Divider()
 
             Text("Notifications")

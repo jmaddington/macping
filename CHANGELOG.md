@@ -1,3 +1,12 @@
+# [1.1.0](https://github.com/jmaddington/maclatency/compare/v1.0.0...v1.1.0) (2025-12-31)
+
+
+### Features
+
+* add configurable latency thresholds [AI] ([adb66cb](https://github.com/jmaddington/maclatency/commit/adb66cbd433f93d22d7ab691d2a380a84103984d))
+* add icon host selection [AI] ([9044b22](https://github.com/jmaddington/maclatency/commit/9044b22a3830399263822bdcac6cb9cefe853dfc))
+* show network interface names for gateways [AI] ([f8809a5](https://github.com/jmaddington/maclatency/commit/f8809a531bba732eef05896d3d6872a2e13b7b18))
+
 # 1.0.0 (2025-12-31)
 
 

@@ -29,7 +29,7 @@ struct AboutView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            if let url = URL(string: "https://github.com/jmaddington/") {
+            if let url = URL(string: "https://github.com/jmaddington/maclatency/") {
                 if #available(macOS 26.0, *) {
                     Link("View on GitHub", destination: url)
                         .font(.caption)

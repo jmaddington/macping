@@ -1,17 +1,20 @@
+// MacThrottleApp.swift
+// AIDEV-NOTE: Main app entry point - network latency monitor
+
 import SwiftUI
 
 @main
 struct MacThrottleApp: App {
-    @State private var monitor = ThermalMonitor()
+    @State private var monitor = LatencyMonitor()
 
     var body: some Scene {
         MenuBarExtra {
             MenuContentView(monitor: monitor)
         } label: {
             MenuBarIcon(
-                pressure: monitor.pressure,
-                temperature: monitor.temperature,
-                showTemperature: monitor.showTemperatureInMenuBar
+                status: monitor.overallStatus,
+                latency: monitor.worstLatency,
+                showLatency: monitor.showLatencyInMenuBar
             )
         }
         .menuBarExtraStyle(.window)

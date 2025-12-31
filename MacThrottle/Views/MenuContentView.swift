@@ -1,39 +1,68 @@
+// MenuContentView.swift
+// AIDEV-NOTE: Main menu content for network latency monitor
+
 import SwiftUI
 
-func colorForTemperature(_ temp: Double) -> Color {
-    switch temp {
-    case ..<60: return .green
-    case 60..<80: return .yellow
-    case 80..<95: return .orange
+func colorForLatency(_ ms: Double) -> Color {
+    switch ms {
+    case ..<50: return .green
+    case 50..<100: return .yellow
+    case 100..<200: return .orange
     default: return .red
     }
 }
 
 struct MenuContentView: View {
-    @Bindable var monitor: ThermalMonitor
+    @Bindable var monitor: LatencyMonitor
     @Environment(\.openWindow) private var openWindow
+    @State private var newHostAddress: String = ""
+    @State private var newHostLabel: String = ""
+    @State private var showAddHost: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Header
             HStack {
-                Text("Thermal Pressure:")
-                Text(monitor.pressure.displayName)
-                    .foregroundColor(monitor.pressure.color)
+                Text("Network Status:")
+                Text(monitor.overallStatus.displayName)
+                    .foregroundColor(monitor.overallStatus.color)
                     .fontWeight(.semibold)
                 Spacer()
-                if let temp = monitor.temperature {
-                    Text("\(Int(temp.rounded()))°C")
-                        .foregroundColor(colorForTemperature(temp))
+                if let latency = monitor.worstLatency {
+                    Text("\(Int(latency.rounded()))ms")
+                        .foregroundColor(colorForLatency(latency))
                         .fontWeight(.semibold)
-                        .help("Source: \(monitor.temperatureSource ?? "Unknown")")
+                        .help("Worst latency")
                 }
             }
             .font(.headline)
 
-            if monitor.history.count >= 2 {
-                HistoryGraphView(history: monitor.history, showFanSpeed: monitor.showFanSpeed)
+            // Per-host latency readings
+            if !monitor.sortedReadings.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(monitor.sortedReadings) { reading in
+                        HStack {
+                            Circle()
+                                .fill(reading.status.color)
+                                .frame(width: 8, height: 8)
+                            Text(reading.hostLabel)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(reading.displayLatency)
+                                .foregroundColor(reading.status.color)
+                                .monospacedDigit()
+                        }
+                        .font(.caption)
+                    }
+                }
             }
 
+            // History graph
+            if monitor.history.count >= 2 {
+                HistoryGraphView(history: monitor.history, hosts: monitor.hosts)
+            }
+
+            // Statistics
             if !monitor.timeInEachState.isEmpty {
                 Divider()
                 Text("Statistics")
@@ -47,6 +76,12 @@ struct MenuContentView: View {
 
             Divider()
 
+            // Hosts section
+            hostsSection
+
+            Divider()
+
+            // Settings
             Text("Settings")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -57,12 +92,7 @@ struct MenuContentView: View {
             ))
             .controlSize(.small)
 
-            if monitor.hasFans {
-                Toggle("Show Fan Speed", isOn: $monitor.showFanSpeed)
-                    .controlSize(.small)
-            }
-
-            Toggle("Show Temperature in Menu Bar", isOn: $monitor.showTemperatureInMenuBar)
+            Toggle("Show Latency in Menu Bar", isOn: $monitor.showLatencyInMenuBar)
                 .controlSize(.small)
 
             Divider()
@@ -72,8 +102,8 @@ struct MenuContentView: View {
                 .foregroundStyle(.secondary)
 
             Group {
-                Toggle("On Heavy", isOn: $monitor.notifyOnHeavy)
-                Toggle("On Critical", isOn: $monitor.notifyOnCritical)
+                Toggle("On Poor (>200ms)", isOn: $monitor.notifyOnPoor)
+                Toggle("On Offline", isOn: $monitor.notifyOnOffline)
                 Toggle("On Recovery", isOn: $monitor.notifyOnRecovery)
                 Toggle("Sound", isOn: $monitor.notificationSound)
             }
@@ -89,6 +119,11 @@ struct MenuContentView: View {
 
                 Spacer()
 
+                Button("Refresh") {
+                    monitor.refreshHosts()
+                }
+                .controlSize(.small)
+
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }
@@ -97,7 +132,80 @@ struct MenuContentView: View {
             }
         }
         .padding(12)
-        .frame(width: 260)
+        .frame(width: 280)
+    }
+
+    @ViewBuilder
+    private var hostsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Monitored Hosts")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    showAddHost.toggle()
+                } label: {
+                    Image(systemName: showAddHost ? "minus.circle" : "plus.circle")
+                }
+                .buttonStyle(.plain)
+                .help(showAddHost ? "Cancel" : "Add host")
+            }
+
+            if showAddHost {
+                addHostForm
+            }
+
+            // List user-defined hosts with delete option
+            ForEach(monitor.userDefinedHosts) { host in
+                HStack {
+                    Image(systemName: "globe")
+                        .foregroundStyle(.secondary)
+                    Text(host.label)
+                        .lineLimit(1)
+                    Text("(\(host.address))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        monitor.removeHost(host)
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Remove host")
+                }
+                .font(.caption)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var addHostForm: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                TextField("IP or hostname", text: $newHostAddress)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+            }
+            HStack {
+                TextField("Label (optional)", text: $newHostLabel)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+                Button("Add") {
+                    if !newHostAddress.isEmpty {
+                        monitor.addHost(address: newHostAddress, label: newHostLabel)
+                        newHostAddress = ""
+                        newHostLabel = ""
+                        showAddHost = false
+                    }
+                }
+                .controlSize(.small)
+                .disabled(newHostAddress.isEmpty)
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     private func openAboutWindow() {

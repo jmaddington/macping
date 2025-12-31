@@ -1,3 +1,6 @@
+// HistoryViews.swift
+// AIDEV-NOTE: Graph and statistics views for network latency history
+
 import SwiftUI
 
 private struct WidthPreferenceKey: PreferenceKey {
@@ -10,13 +13,13 @@ private struct WidthPreferenceKey: PreferenceKey {
 struct HistoryGraphView: View {
     // MARK: - Constants
     private static let maxPoints = 300
-    private static let minTemperatureBound: Double = 30
-    private static let maxTemperatureBound: Double = 110
-    private static let temperaturePadding: Double = 5
+    private static let minLatencyBound: Double = 0
+    private static let maxLatencyBound: Double = 300
+    private static let latencyPadding: Double = 10
 
     // MARK: - Properties
     let history: [HistoryEntry]
-    var showFanSpeed: Bool = true
+    let hosts: [MonitoredHost]
     @State private var hoverLocation: CGPoint?
 
     private var historyDuration: TimeInterval {
@@ -43,28 +46,26 @@ struct HistoryGraphView: View {
         return result
     }
 
-    private var temperatureRange: (min: Double, max: Double) {
-        let temps = downsampledHistory.compactMap { $0.temperature }
-        guard !temps.isEmpty else { return (Self.minTemperatureBound, 100) }
-        let minTemp = max(Self.minTemperatureBound, (temps.min() ?? Self.minTemperatureBound) - Self.temperaturePadding)
-        let maxTemp = min(Self.maxTemperatureBound, (temps.max() ?? 100) + Self.temperaturePadding)
-        return (minTemp, maxTemp)
+    private var latencyRange: (min: Double, max: Double) {
+        var allLatencies: [Double] = []
+        for entry in downsampledHistory {
+            for reading in entry.readings {
+                if let ms = reading.latencyMs {
+                    allLatencies.append(ms)
+                }
+            }
+        }
+        guard !allLatencies.isEmpty else { return (Self.minLatencyBound, 100) }
+        let minLat = max(Self.minLatencyBound, (allLatencies.min() ?? 0) - Self.latencyPadding)
+        let maxLat = min(Self.maxLatencyBound, (allLatencies.max() ?? 100) + Self.latencyPadding)
+        return (minLat, max(maxLat, minLat + 20))  // Ensure at least 20ms range
     }
 
-    private var hasFanData: Bool {
-        showFanSpeed && downsampledHistory.contains { $0.fanSpeed != nil }
-    }
-
-    private func yPositionForTemperature(_ temp: Double, height: CGFloat) -> CGFloat {
-        let range = temperatureRange
+    private func yPositionForLatency(_ ms: Double, height: CGFloat) -> CGFloat {
+        let range = latencyRange
         let padding: CGFloat = 4
-        let normalized = (temp - range.min) / (range.max - range.min)
-        return padding + (1.0 - CGFloat(normalized)) * (height - padding * 2)
-    }
-
-    private func yPositionForFanSpeed(_ percentage: Double, height: CGFloat) -> CGFloat {
-        let padding: CGFloat = 4
-        let normalized = percentage / 100.0
+        let normalized = (ms - range.min) / (range.max - range.min)
+        // Invert: lower latency = higher on screen
         return padding + (1.0 - CGFloat(normalized)) * (height - padding * 2)
     }
 
@@ -76,7 +77,6 @@ struct HistoryGraphView: View {
         let fraction = x / width
         let targetTime = first.timestamp.addingTimeInterval(totalDuration * fraction)
 
-        // Find the closest entry to the target time
         guard let closest = history.min(by: {
             abs($0.timestamp.timeIntervalSince(targetTime)) < abs($1.timestamp.timeIntervalSince(targetTime))
         }) else { return nil }
@@ -85,7 +85,17 @@ struct HistoryGraphView: View {
         return (closest, entryX)
     }
 
-    @State private var graphWidth: CGFloat = 220
+    // Assign colors to hosts
+    private var hostColors: [UUID: Color] {
+        let colors: [Color] = [.blue, .purple, .cyan, .pink, .mint, .indigo]
+        var result: [UUID: Color] = [:]
+        for (index, host) in hosts.enumerated() {
+            result[host.id] = colors[index % colors.count]
+        }
+        return result
+    }
+
+    @State private var graphWidth: CGFloat = 240
 
     var body: some View {
         VStack(spacing: 2) {
@@ -105,6 +115,11 @@ struct HistoryGraphView: View {
             }
             .font(.system(size: 9))
             .foregroundStyle(.secondary)
+
+            // Legend
+            if hosts.count > 1 {
+                legendView
+            }
         }
     }
 
@@ -120,116 +135,79 @@ struct HistoryGraphView: View {
 
             guard totalDuration > 0 else { return }
 
-            // Draw thermal pressure background as merged segments by pressure state
-            var currentPressure = sampled[0].pressure
+            // Draw status background bands
+            var currentStatus = sampled[0].overallStatus
             var segmentStart: CGFloat = 0
 
             for i in 0..<sampled.count {
                 let entry = sampled[i]
                 let x = CGFloat(entry.timestamp.timeIntervalSince(startTime) / totalDuration) * size.width
 
-                if entry.pressure != currentPressure {
+                if entry.overallStatus != currentStatus {
                     let rect = CGRect(x: segmentStart, y: 0, width: x - segmentStart, height: size.height)
-                    context.fill(Path(rect), with: .color(currentPressure.color.opacity(0.3)))
-                    currentPressure = entry.pressure
+                    context.fill(Path(rect), with: .color(currentStatus.color.opacity(0.15)))
+                    currentStatus = entry.overallStatus
                     segmentStart = x
                 }
             }
-            // Draw final segment to end
+            // Draw final segment
             let finalRect = CGRect(x: segmentStart, y: 0, width: size.width - segmentStart, height: size.height)
-            context.fill(Path(finalRect), with: .color(currentPressure.color.opacity(0.3)))
+            context.fill(Path(finalRect), with: .color(currentStatus.color.opacity(0.15)))
 
-            // Draw temperature line
-            var tempPath = Path()
-            var firstPoint = true
+            // Draw latency lines per host
+            let colors = hostColors
+            for host in hosts where host.isEnabled {
+                let hostColor = colors[host.id] ?? .primary
 
-            for entry in sampled {
-                guard let temp = entry.temperature else { continue }
-
-                let x = CGFloat(entry.timestamp.timeIntervalSince(startTime) / totalDuration) * size.width
-                let y = yPositionForTemperature(temp, height: size.height)
-
-                if firstPoint {
-                    tempPath.move(to: CGPoint(x: x, y: y))
-                    firstPoint = false
-                } else {
-                    tempPath.addLine(to: CGPoint(x: x, y: y))
-                }
-            }
-
-            if let last = sampled.last, let temp = last.temperature {
-                let y = yPositionForTemperature(temp, height: size.height)
-                tempPath.addLine(to: CGPoint(x: size.width, y: y))
-            }
-
-            context.stroke(tempPath, with: .color(.primary.opacity(0.8)), lineWidth: 1.5)
-
-            // Draw fan speed line (if data available)
-            let fanColor = Color.cyan
-            if hasFanData {
-                var fanPath = Path()
-                var firstFanPoint = true
+                var path = Path()
+                var firstPoint = true
 
                 for entry in sampled {
-                    guard let fan = entry.fanSpeed else { continue }
+                    guard let reading = entry.readings.first(where: { $0.hostId == host.id }),
+                          let ms = reading.latencyMs else { continue }
 
                     let x = CGFloat(entry.timestamp.timeIntervalSince(startTime) / totalDuration) * size.width
-                    let y = yPositionForFanSpeed(fan, height: size.height)
+                    let y = yPositionForLatency(ms, height: size.height)
 
-                    if firstFanPoint {
-                        fanPath.move(to: CGPoint(x: x, y: y))
-                        firstFanPoint = false
+                    if firstPoint {
+                        path.move(to: CGPoint(x: x, y: y))
+                        firstPoint = false
                     } else {
-                        fanPath.addLine(to: CGPoint(x: x, y: y))
+                        path.addLine(to: CGPoint(x: x, y: y))
                     }
                 }
 
-                if let last = sampled.last, let fan = last.fanSpeed {
-                    let y = yPositionForFanSpeed(fan, height: size.height)
-                    fanPath.addLine(to: CGPoint(x: size.width, y: y))
+                // Extend to current time
+                if let last = sampled.last,
+                   let reading = last.readings.first(where: { $0.hostId == host.id }),
+                   let ms = reading.latencyMs {
+                    let y = yPositionForLatency(ms, height: size.height)
+                    path.addLine(to: CGPoint(x: size.width, y: y))
                 }
 
-                context.stroke(
-                    fanPath,
-                    with: .color(fanColor.opacity(0.5)),
-                    style: StrokeStyle(lineWidth: 1, dash: [4, 2])
-                )
+                context.stroke(path, with: .color(hostColor.opacity(0.8)), lineWidth: 1.5)
 
-                // Current fan speed point (smaller)
-                if let last = sampled.last, let fan = last.fanSpeed {
-                    let y = yPositionForFanSpeed(fan, height: size.height)
-                    let circle = Path(ellipseIn: CGRect(x: size.width - 3, y: y - 3, width: 6, height: 6))
-                    context.fill(circle, with: .color(fanColor.opacity(0.7)))
+                // Current value dot
+                if let last = sampled.last,
+                   let reading = last.readings.first(where: { $0.hostId == host.id }),
+                   let ms = reading.latencyMs {
+                    let y = yPositionForLatency(ms, height: size.height)
+                    let circle = Path(ellipseIn: CGRect(x: size.width - 4, y: y - 4, width: 8, height: 8))
+                    context.fill(circle, with: .color(hostColor))
                 }
             }
 
-            // Current temperature point
-            if let last = sampled.last, let temp = last.temperature {
-                let y = yPositionForTemperature(temp, height: size.height)
-                let circle = Path(ellipseIn: CGRect(x: size.width - 4, y: y - 4, width: 8, height: 8))
-                context.fill(circle, with: .color(.primary))
-            }
-
-            // Temperature range labels (left side)
-            let range = temperatureRange
+            // Latency range labels
+            let range = latencyRange
             let labelStyle = Font.system(size: 8)
             let labelColor = Color.secondary.opacity(0.8)
-            let maxLabel = Text("\(Int(range.max))°").font(labelStyle).foregroundColor(labelColor)
-            let minLabel = Text("\(Int(range.min))°").font(labelStyle).foregroundColor(labelColor)
+            let maxLabel = Text("\(Int(range.max))ms").font(labelStyle).foregroundColor(labelColor)
+            let minLabel = Text("\(Int(range.min))ms").font(labelStyle).foregroundColor(labelColor)
             context.draw(maxLabel, at: CGPoint(x: 4, y: 4), anchor: .topLeading)
             context.draw(minLabel, at: CGPoint(x: 4, y: size.height - 4), anchor: .bottomLeading)
 
-            // Fan speed range labels (right side)
-            if hasFanData {
-                let fanMaxLabel = Text("100%").font(labelStyle).foregroundColor(fanColor.opacity(0.8))
-                let fanMinLabel = Text("0%").font(labelStyle).foregroundColor(fanColor.opacity(0.8))
-                context.draw(fanMaxLabel, at: CGPoint(x: size.width - 4, y: 4), anchor: .topTrailing)
-                context.draw(fanMinLabel, at: CGPoint(x: size.width - 4, y: size.height - 4), anchor: .bottomTrailing)
-            }
-
             // Hover indicator
             if let location = hoverLocation, let result = entryAt(x: location.x, width: size.width) {
-                let entry = result.entry
                 let hoverX = result.xPosition
 
                 var linePath = Path()
@@ -237,20 +215,15 @@ struct HistoryGraphView: View {
                 linePath.addLine(to: CGPoint(x: hoverX, y: size.height))
                 context.stroke(linePath, with: .color(.primary.opacity(0.3)), lineWidth: 1)
 
-                // Temperature hover point
-                if let temp = entry.temperature {
-                    let y = yPositionForTemperature(temp, height: size.height)
-                    let circle = Path(ellipseIn: CGRect(x: hoverX - 4, y: y - 4, width: 8, height: 8))
-                    context.fill(circle, with: .color(entry.pressure.color))
-                    context.stroke(circle, with: .color(.primary), lineWidth: 1.5)
-                }
-
-                // Fan speed hover point (smaller, subtler)
-                if hasFanData, let fan = entry.fanSpeed {
-                    let y = yPositionForFanSpeed(fan, height: size.height)
-                    let circle = Path(ellipseIn: CGRect(x: hoverX - 3, y: y - 3, width: 6, height: 6))
-                    context.fill(circle, with: .color(fanColor.opacity(0.8)))
-                    context.stroke(circle, with: .color(.primary.opacity(0.6)), lineWidth: 1)
+                // Hover dots for each host
+                for reading in result.entry.readings {
+                    if let ms = reading.latencyMs {
+                        let hostColor = colors[reading.hostId] ?? .primary
+                        let y = yPositionForLatency(ms, height: size.height)
+                        let circle = Path(ellipseIn: CGRect(x: hoverX - 4, y: y - 4, width: 8, height: 8))
+                        context.fill(circle, with: .color(hostColor))
+                        context.stroke(circle, with: .color(.primary), lineWidth: 1.5)
+                    }
                 }
             }
         }
@@ -272,27 +245,45 @@ struct HistoryGraphView: View {
     private var tooltipView: some View {
         if let location = hoverLocation, let result = entryAt(x: location.x, width: graphWidth) {
             let entry = result.entry
-            if let temp = entry.temperature {
-                let timeAgo = Int(Date().timeIntervalSince(entry.timestamp))
-                let timeStr = timeAgo < 60 ? "\(timeAgo)s ago" : "\(timeAgo / 60)m ago"
-                let fanStr = showFanSpeed ? entry.fanSpeed.map { " • Fan \(Int($0))%" } ?? "" : ""
-                if #available(macOS 26.0, *) {
-                    Text("\(Int(temp))° • \(entry.pressure.displayName)\(fanStr) • \(timeStr)")
-                        .font(.system(size: 8, weight: .medium))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 6))
-                        .padding(4)
-                } else {
-                    Text("\(Int(temp))° • \(entry.pressure.displayName)\(fanStr) • \(timeStr)")
-                        .font(.system(size: 8, weight: .medium))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
-                        .padding(4)
+            let timeAgo = Int(Date().timeIntervalSince(entry.timestamp))
+            let timeStr = timeAgo < 60 ? "\(timeAgo)s ago" : "\(timeAgo / 60)m ago"
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(timeStr)
+                    .font(.system(size: 7))
+                    .foregroundStyle(.secondary)
+                ForEach(entry.readings) { reading in
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(hostColors[reading.hostId] ?? .gray)
+                            .frame(width: 6, height: 6)
+                        Text(reading.displayLatency)
+                            .font(.system(size: 8, weight: .medium))
+                    }
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
+            .padding(4)
+        }
+    }
+
+    @ViewBuilder
+    private var legendView: some View {
+        HStack(spacing: 8) {
+            ForEach(hosts.filter(\.isEnabled)) { host in
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(hostColors[host.id] ?? .gray)
+                        .frame(width: 6, height: 6)
+                    Text(host.label)
+                        .font(.system(size: 8))
+                        .lineLimit(1)
                 }
             }
         }
+        .foregroundStyle(.secondary)
     }
 
     private func formatTimeAgo(_ interval: TimeInterval) -> String {
@@ -311,23 +302,23 @@ struct HistoryGraphView: View {
 }
 
 struct TimeBreakdownView: View {
-    let timeInEachState: [(pressure: ThermalPressure, duration: TimeInterval)]
+    let timeInEachState: [(status: LatencyStatus, duration: TimeInterval)]
     let totalDuration: TimeInterval
 
-    private static let allStates: [ThermalPressure] = [.nominal, .moderate, .heavy, .critical]
+    private static let allStates: [LatencyStatus] = [.excellent, .good, .fair, .poor, .offline]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            ForEach(Self.allStates, id: \.self) { pressure in
-                let duration = timeInEachState.first { $0.pressure == pressure }?.duration ?? 0
+            ForEach(Self.allStates, id: \.self) { status in
+                let duration = timeInEachState.first { $0.status == status }?.duration ?? 0
                 HStack {
                     Circle()
-                        .fill(pressure.color)
+                        .fill(status.color)
                         .frame(width: 8, height: 8)
                     HStack(spacing: 2) {
-                        Text(pressure.displayName)
-                        if pressure.isThrottling {
-                            Text("(throttling)")
+                        Text(status.displayName)
+                        if status.isProblematic {
+                            Text("(problem)")
                                 .foregroundStyle(.secondary)
                         }
                     }

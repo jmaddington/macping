@@ -8,31 +8,31 @@
 
 /* Begin PBXBuildFile section */
 		A1000001229E8F1100000001 /* MacThrottleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002229E8F1100000001 /* MacThrottleApp.swift */; };
-		A1000003229E8F1100000001 /* ThermalMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004229E8F1100000001 /* ThermalMonitor.swift */; };
+		A1000003229E8F1100000001 /* LatencyMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004229E8F1100000001 /* LatencyMonitor.swift */; };
 		A1000015229E8F1100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000016229E8F1100000001 /* Assets.xcassets */; };
-		A1000017229E8F1100000001 /* TemperatureReaders.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000018229E8F1100000001 /* TemperatureReaders.swift */; };
+		A1000017229E8F1100000001 /* NetworkLatencyReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000018229E8F1100000001 /* NetworkLatencyReader.swift */; };
 		A1000019229E8F1100000001 /* HistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001A229E8F1100000001 /* HistoryViews.swift */; };
-		A100001C229E8F1100000001 /* ThermalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001B229E8F1100000001 /* ThermalModels.swift */; };
+		A100001C229E8F1100000001 /* LatencyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001B229E8F1100000001 /* LatencyModels.swift */; };
 		A1000020229E8F1100000001 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100001F229E8F1100000001 /* MenuContentView.swift */; };
 		A1000022229E8F1100000001 /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000021229E8F1100000001 /* MenuBarIcon.swift */; };
 		A1000024229E8F1100000001 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000023229E8F1100000001 /* AboutView.swift */; };
-		A1000029229E8F1100000001 /* ThermalPressureReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000028229E8F1100000001 /* ThermalPressureReader.swift */; };
+		A1000029229E8F1100000001 /* GatewayDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000028229E8F1100000001 /* GatewayDiscovery.swift */; };
 		A100002C229E8F1100000001 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100002B229E8F1100000001 /* LaunchAtLoginManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A1000002229E8F1100000001 /* MacThrottleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacThrottleApp.swift; sourceTree = "<group>"; };
-		A1000004229E8F1100000001 /* ThermalMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalMonitor.swift; sourceTree = "<group>"; };
+		A1000004229E8F1100000001 /* LatencyMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyMonitor.swift; sourceTree = "<group>"; };
 		A1000005229E8F1100000001 /* MacThrottle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacThrottle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000006229E8F1100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000016229E8F1100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A1000018229E8F1100000001 /* TemperatureReaders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureReaders.swift; sourceTree = "<group>"; };
+		A1000018229E8F1100000001 /* NetworkLatencyReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkLatencyReader.swift; sourceTree = "<group>"; };
 		A100001A229E8F1100000001 /* HistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViews.swift; sourceTree = "<group>"; };
-		A100001B229E8F1100000001 /* ThermalModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalModels.swift; sourceTree = "<group>"; };
+		A100001B229E8F1100000001 /* LatencyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyModels.swift; sourceTree = "<group>"; };
 		A100001F229E8F1100000001 /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
 		A1000021229E8F1100000001 /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
 		A1000023229E8F1100000001 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
-		A1000028229E8F1100000001 /* ThermalPressureReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThermalPressureReader.swift; sourceTree = "<group>"; };
+		A1000028229E8F1100000001 /* GatewayDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayDiscovery.swift; sourceTree = "<group>"; };
 		A100002A229E8F1100000001 /* MacThrottle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacThrottle.entitlements; sourceTree = "<group>"; };
 		A100002B229E8F1100000001 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -81,7 +81,7 @@
 		A1000025229E8F1100000001 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				A100001B229E8F1100000001 /* ThermalModels.swift */,
+				A100001B229E8F1100000001 /* LatencyModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -100,9 +100,9 @@
 		A1000027229E8F1100000001 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				A1000004229E8F1100000001 /* ThermalMonitor.swift */,
-				A1000028229E8F1100000001 /* ThermalPressureReader.swift */,
-				A1000018229E8F1100000001 /* TemperatureReaders.swift */,
+				A1000004229E8F1100000001 /* LatencyMonitor.swift */,
+				A1000018229E8F1100000001 /* NetworkLatencyReader.swift */,
+				A1000028229E8F1100000001 /* GatewayDiscovery.swift */,
 				A100002B229E8F1100000001 /* LaunchAtLoginManager.swift */,
 			);
 			path = Services;
@@ -178,14 +178,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000001229E8F1100000001 /* MacThrottleApp.swift in Sources */,
-				A100001C229E8F1100000001 /* ThermalModels.swift in Sources */,
+				A100001C229E8F1100000001 /* LatencyModels.swift in Sources */,
 				A1000020229E8F1100000001 /* MenuContentView.swift in Sources */,
 				A1000022229E8F1100000001 /* MenuBarIcon.swift in Sources */,
 				A1000024229E8F1100000001 /* AboutView.swift in Sources */,
 				A1000019229E8F1100000001 /* HistoryViews.swift in Sources */,
-				A1000003229E8F1100000001 /* ThermalMonitor.swift in Sources */,
-				A1000029229E8F1100000001 /* ThermalPressureReader.swift in Sources */,
-				A1000017229E8F1100000001 /* TemperatureReaders.swift in Sources */,
+				A1000003229E8F1100000001 /* LatencyMonitor.swift in Sources */,
+				A1000029229E8F1100000001 /* GatewayDiscovery.swift in Sources */,
+				A1000017229E8F1100000001 /* NetworkLatencyReader.swift in Sources */,
 				A100002C229E8F1100000001 /* LaunchAtLoginManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

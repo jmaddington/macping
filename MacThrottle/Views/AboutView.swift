@@ -24,12 +24,12 @@ struct AboutView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            Text("Monitor your Mac's thermal pressure\nand get notified when throttling occurs.")
+            Text("Monitor your Mac's latency to various hosts.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
-            if let url = URL(string: "https://github.com/angristan/MacThrottle") {
+            if let url = URL(string: "https://github.com/jmaddington/") {
                 if #available(macOS 26.0, *) {
                     Link("View on GitHub", destination: url)
                         .font(.caption)

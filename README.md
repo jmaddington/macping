@@ -14,6 +14,8 @@ I've wanted an app like this for years, but didn't want to learn Swift to make i
 
 This project started as a fork of [MacThrottle](https://github.com/angristan/MacThrottle) by angristan, which was a thermal monitoring app. I used [Claude Code](https://claude.ai/claude-code) and GPT-5 (via Xcode) to transform it into a network latency monitor.
 
+> **Warning**: I still don't know Swift. This entire codebase was written by AI. Use at your own risk, and PRs from actual Swift developers are very welcome!
+
 ## Features
 
 - Displays network latency status in the menu bar with color-coded icons

@@ -76,15 +76,22 @@ final class NetworkLatencyReader: Sendable {
     }
 
     /// Ping multiple hosts concurrently and return results
-    func pingMultiple(_ hosts: [MonitoredHost], timeout: TimeInterval = 2.0) async -> [LatencyReading] {
-        await withTaskGroup(of: LatencyReading.self) { group in
+    func pingMultiple(
+        _ hosts: [MonitoredHost],
+        timeout: TimeInterval = 2.0,
+        thresholds: LatencyThresholds = .default
+    ) async -> [LatencyReading] {
+        // Capture thresholds for Sendable compliance
+        let capturedThresholds = thresholds
+
+        return await withTaskGroup(of: LatencyReading.self) { group in
             for host in hosts where host.isEnabled {
                 // Capture values explicitly to satisfy Swift 6 Sendable requirements
                 let capturedHost = host
                 let capturedTimeout = timeout
                 group.addTask {
                     let latency = await self.ping(capturedHost.address, timeout: capturedTimeout)
-                    return LatencyReading(host: capturedHost, latencyMs: latency)
+                    return LatencyReading(host: capturedHost, latencyMs: latency, thresholds: capturedThresholds)
                 }
             }
 

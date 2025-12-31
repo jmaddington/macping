@@ -3,21 +3,18 @@
 
 import SwiftUI
 
-func colorForLatency(_ ms: Double) -> Color {
-    switch ms {
-    case ..<50: return .green
-    case 50..<100: return .yellow
-    case 100..<200: return .orange
-    default: return .red
-    }
-}
-
 struct MenuContentView: View {
     @Bindable var monitor: LatencyMonitor
     @Environment(\.openWindow) private var openWindow
     @State private var newHostAddress: String = ""
     @State private var newHostLabel: String = ""
     @State private var showAddHost: Bool = false
+    @State private var showThresholds: Bool = false
+
+    /// Get color for latency using current thresholds
+    private func colorForLatency(_ ms: Double) -> Color {
+        monitor.thresholds.status(for: ms).color
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -109,6 +106,9 @@ struct MenuContentView: View {
             }
             .controlSize(.small)
 
+            // Thresholds section
+            thresholdsSection
+
             Divider()
 
             Text("Notifications")
@@ -116,7 +116,7 @@ struct MenuContentView: View {
                 .foregroundStyle(.secondary)
 
             Group {
-                Toggle("On Poor (>200ms)", isOn: $monitor.notifyOnPoor)
+                Toggle("On Poor (>\(Int(monitor.thresholds.fair))ms)", isOn: $monitor.notifyOnPoor)
                 Toggle("On Offline", isOn: $monitor.notifyOnOffline)
                 Toggle("On Recovery", isOn: $monitor.notifyOnRecovery)
                 Toggle("Sound", isOn: $monitor.notificationSound)
@@ -220,6 +220,54 @@ struct MenuContentView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var thresholdsSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                showThresholds.toggle()
+            } label: {
+                HStack {
+                    Text("Thresholds")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: showThresholds ? "chevron.down" : "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+
+            if showThresholds {
+                VStack(alignment: .leading, spacing: 4) {
+                    thresholdRow(label: "Excellent (<", value: $monitor.thresholds.excellent, color: .green)
+                    thresholdRow(label: "Good (<", value: $monitor.thresholds.good, color: .yellow)
+                    thresholdRow(label: "Fair (<", value: $monitor.thresholds.fair, color: .orange)
+                    Text("Poor (≥\(Int(monitor.thresholds.fair))ms)")
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                }
+                .padding(.leading, 8)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func thresholdRow(label: String, value: Binding<Double>, color: Color) -> some View {
+        HStack {
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(color)
+            TextField("", value: value, format: .number)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 50)
+                .font(.caption2)
+            Text("ms)")
+                .font(.caption2)
+                .foregroundColor(color)
+        }
     }
 
     private func openAboutWindow() {

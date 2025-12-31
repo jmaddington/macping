@@ -4,6 +4,28 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Latency Thresholds
+
+/// Configurable thresholds for latency status levels
+struct LatencyThresholds: Codable, Equatable, Sendable {
+    var excellent: Double = 50   // < excellent = green
+    var good: Double = 100       // < good = yellow
+    var fair: Double = 200       // < fair = orange, else red
+
+    static let `default` = LatencyThresholds()
+
+    /// Determine status from latency in milliseconds using these thresholds
+    func status(for latencyMs: Double?) -> LatencyStatus {
+        guard let ms = latencyMs else { return .offline }
+        switch ms {
+        case ..<excellent: return .excellent
+        case excellent..<good: return .good
+        case good..<fair: return .fair
+        default: return .poor
+        }
+    }
+}
+
 // MARK: - Latency Status
 
 enum LatencyStatus: String, Codable, Sendable {
@@ -45,15 +67,14 @@ enum LatencyStatus: String, Codable, Sendable {
         }
     }
 
-    /// Determine status from latency in milliseconds
+    /// Determine status from latency in milliseconds using default thresholds
     static func from(latencyMs: Double?) -> LatencyStatus {
-        guard let ms = latencyMs else { return .offline }
-        switch ms {
-        case ..<50: return .excellent
-        case 50..<100: return .good
-        case 100..<200: return .fair
-        default: return .poor
-        }
+        LatencyThresholds.default.status(for: latencyMs)
+    }
+
+    /// Determine status from latency using custom thresholds
+    static func from(latencyMs: Double?, thresholds: LatencyThresholds) -> LatencyStatus {
+        thresholds.status(for: latencyMs)
     }
 }
 
@@ -97,13 +118,13 @@ struct LatencyReading: Identifiable, Sendable {
     let status: LatencyStatus
     let timestamp: Date
 
-    init(host: MonitoredHost, latencyMs: Double?, timestamp: Date = Date()) {
+    init(host: MonitoredHost, latencyMs: Double?, thresholds: LatencyThresholds = .default, timestamp: Date = Date()) {
         self.id = UUID()
         self.hostId = host.id
         self.hostLabel = host.label
         self.hostAddress = host.address
         self.latencyMs = latencyMs
-        self.status = LatencyStatus.from(latencyMs: latencyMs)
+        self.status = LatencyStatus.from(latencyMs: latencyMs, thresholds: thresholds)
         self.timestamp = timestamp
     }
 

@@ -63,6 +63,17 @@ final class LatencyMonitor {
         didSet { UserDefaults.standard.set(showLatencyInMenuBar, forKey: "showLatencyInMenuBar") }
     }
 
+    // swiftlint:disable:next line_length
+    var thresholds: LatencyThresholds = (try? JSONDecoder().decode(LatencyThresholds.self, from: UserDefaults.standard.data(forKey: "thresholds") ?? Data())) ?? .default {
+        didSet { persistThresholds() }
+    }
+
+    private func persistThresholds() {
+        if let data = try? JSONEncoder().encode(thresholds) {
+            UserDefaults.standard.set(data, forKey: "thresholds")
+        }
+    }
+
     // MARK: - Computed Properties
 
     var timeInEachState: [(status: LatencyStatus, duration: TimeInterval)] {
@@ -208,7 +219,8 @@ final class LatencyMonitor {
 
         let readings = await NetworkLatencyReader.shared.pingMultiple(
             enabledHosts,
-            timeout: Self.pingTimeoutSeconds
+            timeout: Self.pingTimeoutSeconds,
+            thresholds: thresholds
         )
 
         // Update latest readings

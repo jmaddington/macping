@@ -1,12 +1,15 @@
 // LatencyMonitor.swift
 // AIDEV-NOTE: Main orchestrator for network latency monitoring - replaces ThermalMonitor
 
+// AIDEV-NOTE: lint-suppressed; split this file/class under SwiftLint limits, then drop the disables (macping-kpe)
+// swiftlint:disable file_length
 import Foundation
 import SwiftUI
 import UserNotifications
 
 @MainActor
 @Observable
+// swiftlint:disable:next type_body_length
 final class LatencyMonitor {
     // MARK: - Constants
 
@@ -46,7 +49,7 @@ final class LatencyMonitor {
     var isEditingThresholds: Bool = false
 
     /// Snapshot of thresholds to use while editing is active
-    var frozenThresholds: LatencyThresholds? = nil
+    var frozenThresholds: LatencyThresholds?
 
     // MARK: - User Settings (persisted to UserDefaults)
 
@@ -127,7 +130,8 @@ final class LatencyMonitor {
         (300, "5 min")
     ]
 
-    var menuBarUpdateInterval: Double = UserDefaults.standard.object(forKey: "menuBarUpdateInterval") as? Double ?? 10.0 {
+    var menuBarUpdateInterval: Double =
+        UserDefaults.standard.object(forKey: "menuBarUpdateInterval") as? Double ?? 10.0 {
         didSet { UserDefaults.standard.set(menuBarUpdateInterval, forKey: "menuBarUpdateInterval") }
     }
 
@@ -143,7 +147,8 @@ final class LatencyMonitor {
     /// Delay in seconds before sending notification (0 = immediate)
     static let notificationDelayOptions: [Double] = [0, 5, 10, 15, 30, 60]
 
-    var notificationDelaySeconds: Double = UserDefaults.standard.object(forKey: "notificationDelaySeconds") as? Double ?? 0 {
+    var notificationDelaySeconds: Double =
+        UserDefaults.standard.object(forKey: "notificationDelaySeconds") as? Double ?? 0 {
         didSet { UserDefaults.standard.set(notificationDelaySeconds, forKey: "notificationDelaySeconds") }
     }
 
@@ -514,7 +519,9 @@ final class LatencyMonitor {
         return true
     }
 
-    private func handleHostStatusChange(hostId: UUID, hostLabel: String, from previous: LatencyStatus, to current: LatencyStatus) {
+    private func handleHostStatusChange(
+        hostId: UUID, hostLabel: String, from previous: LatencyStatus, to current: LatencyStatus
+    ) {
         guard shouldNotifyForHost(hostId) else { return }
 
         // Notify on degradation to poor
@@ -579,4 +586,3 @@ private extension LatencyStatus {
         }
     }
 }
-

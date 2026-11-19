@@ -20,7 +20,7 @@ done
 
 P12="$RUNNER_TEMP/cert-$RANDOM.p12"
 echo "$DEVELOPER_ID_APP_P12" | base64 --decode > "$P12"
-security import "$P12" -k "$KC" -P "$DEVELOPER_ID_APP_PASSWORD" -T /usr/bin/codesign
+security import "$P12" -k "$KC" -P "$DEVELOPER_ID_APP_PASSWORD" -x -T /usr/bin/codesign   # -x: key non-exportable
 rm -f "$P12"
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASS" "$KC" >/dev/null
 # shellcheck disable=SC2046

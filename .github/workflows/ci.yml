@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
-      - run: npm install -D @commitlint/cli @commitlint/config-conventional
+      - run: npm install --no-save @commitlint/cli@21.2.4 @commitlint/config-conventional@21.2.4
       - name: Validate current commit (last commit) with commitlint
         if: github.event_name == 'push'
         run: npx commitlint --last --verbose
@@ -77,10 +77,11 @@ jobs:
         with:
           node-version: lts/*
       - name: Install dependencies
-        run: npm install -D semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/exec
+        run: npm install --no-save semantic-release@26.0.1 @semantic-release/changelog@7.0.0 @semantic-release/git@11.0.1 @semantic-release/exec@7.1.0
       - name: Install create-dmg
         run: brew install create-dmg
       # AIDEV-NOTE: build-release.sh refuses to run on CI without these; a release is always signed + notarized.
+      # AIDEV-NOTE: npm deps are version-pinned because semantic-release runs while the signing keychain is unlocked.
       - name: Import signing certificate and notary key
         env:
           DEVELOPER_ID_APP_P12: ${{ secrets.DEVELOPER_ID_APP_P12 }}
@@ -95,4 +96,4 @@ jobs:
         run: npx semantic-release
       - name: Clean up keychain
         if: always()
-        run: security delete-keychain "$RUNNER_TEMP/macping-signing.keychain-db" || true
+        run: security delete-keychain "$RUNNER_TEMP/macping-signing.keychain-db" || true; rm -f "$RUNNER_TEMP/AuthKey.p8"

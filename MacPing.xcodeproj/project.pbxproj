@@ -18,6 +18,9 @@
 		A1000024229E8F1100000001 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000023229E8F1100000001 /* AboutView.swift */; };
 		A1000029229E8F1100000001 /* GatewayDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000028229E8F1100000001 /* GatewayDiscovery.swift */; };
 		A100002C229E8F1100000001 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100002B229E8F1100000001 /* LaunchAtLoginManager.swift */; };
+		A1000030229E8F1100000001 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000031229E8F1100000001 /* Updater.swift */; };
+		A1000032229E8F1100000001 /* UpdateSettingsRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000033229E8F1100000001 /* UpdateSettingsRows.swift */; };
+		A1000036229E8F1100000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1000035229E8F1100000001 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +38,8 @@
 		A1000028229E8F1100000001 /* GatewayDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayDiscovery.swift; sourceTree = "<group>"; };
 		A100002A229E8F1100000001 /* MacPing.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacPing.entitlements; sourceTree = "<group>"; };
 		A100002B229E8F1100000001 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		A1000031229E8F1100000001 /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
+		A1000033229E8F1100000001 /* UpdateSettingsRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateSettingsRows.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +47,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000036229E8F1100000001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,6 +97,7 @@
 			children = (
 				A100001F229E8F1100000001 /* MenuContentView.swift */,
 				A1000021229E8F1100000001 /* MenuBarIcon.swift */,
+				A1000033229E8F1100000001 /* UpdateSettingsRows.swift */,
 				A1000023229E8F1100000001 /* AboutView.swift */,
 				A100001A229E8F1100000001 /* HistoryViews.swift */,
 			);
@@ -104,6 +111,7 @@
 				A1000018229E8F1100000001 /* NetworkLatencyReader.swift */,
 				A1000028229E8F1100000001 /* GatewayDiscovery.swift */,
 				A100002B229E8F1100000001 /* LaunchAtLoginManager.swift */,
+				A1000031229E8F1100000001 /* Updater.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -124,6 +132,9 @@
 			dependencies = (
 			);
 			name = MacPing;
+			packageProductDependencies = (
+				A1000035229E8F1100000001 /* Sparkle */,
+			);
 			productName = MacPing;
 			productReference = A1000005229E8F1100000001 /* MacPing.app */;
 			productType = "com.apple.product-type.application";
@@ -152,6 +163,9 @@
 				Base,
 			);
 			mainGroup = A1000008229E8F1100000001;
+			packageReferences = (
+				A1000034229E8F1100000001 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			productRefGroup = A100000A229E8F1100000001 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -187,6 +201,8 @@
 				A1000029229E8F1100000001 /* GatewayDiscovery.swift in Sources */,
 				A1000017229E8F1100000001 /* NetworkLatencyReader.swift in Sources */,
 				A100002C229E8F1100000001 /* LaunchAtLoginManager.swift in Sources */,
+				A1000030229E8F1100000001 /* Updater.swift in Sources */,
+				A1000032229E8F1100000001 /* UpdateSettingsRows.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,6 +407,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1000034229E8F1100000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1000035229E8F1100000001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1000034229E8F1100000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A100000F229E8F1100000001 /* Project object */;
 }

@@ -257,6 +257,8 @@ struct MenuContentView: View {
                     ))
                     .controlSize(.small)
 
+                    UpdateSettingsRows()
+
                     // Status bar display mode
                     HStack {
                         Text("Menu Bar:")

@@ -36,14 +36,21 @@ rm -rf release && mkdir -p release
 ZIP="release/MacPing-${VERSION}.zip"
 DMG="release/MacPing-${VERSION}.dmg"
 
-if [[ -n "$IDENTITY" ]]; then
-  step "Signing MacPing.app" codesign --force --deep --options runtime --timestamp \
-    --entitlements MacPing/MacPing.entitlements --sign "$IDENTITY" "$APP_PATH"
-  step "Verifying signature" codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-else
-  echo "No Developer ID identity: ad-hoc signing (local testing only)"
-  codesign --force --deep --sign - "$APP_PATH"
-fi
+# AIDEV-NOTE: sign Sparkle inside-out (XPCs, Autoupdate, Updater.app, framework) BEFORE the app; never --deep,
+# which would strip Downloader.xpc's entitlements. Order/flags follow Sparkle's "Distributing outside Xcode" docs.
+SIGN_AS=${IDENTITY:--}
+TS=(); [[ -n "$IDENTITY" ]] && TS=(--timestamp)
+SP="$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B"
+[[ -d "$SP" ]] || { annotate error "Sparkle missing" "Sparkle.framework not embedded in $APP_PATH"; exit 1; }
+cs() { codesign -f -s "$SIGN_AS" -o runtime ${TS[@]+"${TS[@]}"} "$@"; }   # bash 3.2-safe empty array
+step "Signing Sparkle Installer.xpc" cs "$SP/XPCServices/Installer.xpc"
+step "Signing Sparkle Downloader.xpc" cs --preserve-metadata=entitlements "$SP/XPCServices/Downloader.xpc"
+step "Signing Sparkle Autoupdate" cs "$SP/Autoupdate"
+step "Signing Sparkle Updater.app" cs "$SP/Updater.app"
+step "Signing Sparkle.framework" cs "$APP_PATH/Contents/Frameworks/Sparkle.framework"
+[[ -z "$IDENTITY" ]] && echo "No Developer ID identity: ad-hoc signing (local testing only)"
+step "Signing MacPing.app" cs --entitlements MacPing/MacPing.entitlements "$APP_PATH"
+step "Verifying signature" codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 
 NOTARIZE=""
 [[ -n "$IDENTITY" && -n "${NOTARY_KEY_PATH:-}${NOTARY_PROFILE:-}" ]] && NOTARIZE=1
@@ -82,5 +89,7 @@ else
 fi
 
 (cd release && shasum -a 256 ./*.zip ./*.dmg | sed 's| \./| |' > SHA256SUMS.txt)
+# Read by the "Sparkle appcast" CI step, which signs the DMG after semantic-release publishes.
+echo "$VERSION" > release/VERSION
 echo "Release artifacts created:"
 ls -la release/

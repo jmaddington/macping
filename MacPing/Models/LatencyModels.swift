@@ -101,9 +101,11 @@ enum LatencyStatus: String, Codable, Sendable {
     static func from(latencyMs: Double?, thresholds: LatencyThresholds) -> LatencyStatus {
         thresholds.status(for: latencyMs)
     }
-    
+
     /// Determine status from latency using an optional effective thresholds snapshot. When `effective` is nil, falls back to `thresholds`.
-    static func from(latencyMs: Double?, thresholds: LatencyThresholds, effective: LatencyThresholds?) -> LatencyStatus {
+    static func from(
+        latencyMs: Double?, thresholds: LatencyThresholds, effective: LatencyThresholds?
+    ) -> LatencyStatus {
         thresholds.status(for: latencyMs, effective: effective)
     }
 }
@@ -239,4 +241,3 @@ private extension LatencyStatus {
         }
     }
 }
-

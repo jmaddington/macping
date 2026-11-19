@@ -64,6 +64,8 @@ jobs:
     runs-on: macos-26
     needs: [commitlint, lint, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      version: ${{ steps.rel.outputs.version }}
     permissions:
       contents: write
       issues: write
@@ -94,17 +96,55 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
-      # AIDEV-NOTE: separate step so the Sparkle key is never in the env of npm/semantic-release code.
-      # appcast.xml joins the release that semantic-release just published; SUFeedURL reads it via releases/latest.
-      - name: Sparkle appcast
+      - name: Stage release for appcast job
+        id: rel
+        run: |
+          if [[ -f release/VERSION ]]; then echo "version=$(cat release/VERSION)" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/upload-artifact@v5
+        if: steps.rel.outputs.version != ''
+        with:
+          name: release-dmg
+          path: |
+            release/MacPing-*.dmg
+            build/Build/Products/Release/MacPing.app/Contents/Info.plist
+          retention-days: 3
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/macping-signing.keychain-db" || true; rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+  # AIDEV-NOTE: own job on a fresh runner + checkout, no npm: code from the semantic-release job can't
+  # persist into the one step that holds the Sparkle key. It only receives the DMG + Info.plist.
+  appcast:
+    name: Sparkle appcast
+    runs-on: macos-26
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: write
+    env:
+      V: ${{ needs.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v5
+        with:
+          name: release-dmg
+          path: .
+      - name: Verify DMG is ours and notarized
+        run: |
+          [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::bad version '$V'"; exit 1; }
+          DMG="release/MacPing-$V.dmg"
+          codesign --verify --strict "$DMG"
+          codesign -dv "$DMG" 2>&1 | grep -q '^TeamIdentifier=9922U2YSY3$' || { echo "::error::DMG not signed by team 9922U2YSY3"; exit 1; }
+          xcrun stapler validate "$DMG"
+      - name: Sign update and publish appcast
         env:
           SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ ! -f release/VERSION ]]; then echo "No release this run"; exit 0; fi
-          V=$(cat release/VERSION)
           ./scripts/make-appcast.sh "release/MacPing-$V.dmg"
-          gh release upload "v$V" release/appcast.xml --clobber
-      - name: Clean up keychain
+          gh release upload "v$V" release/appcast.xml --clobber -R "$GITHUB_REPOSITORY"
+      - name: Remove Sparkle tools
         if: always()
-        run: security delete-keychain "$RUNNER_TEMP/macping-signing.keychain-db" || true; rm -f "$RUNNER_TEMP/AuthKey.p8"
+        run: rm -rf build/sparkle-tools

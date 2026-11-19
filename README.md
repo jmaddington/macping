@@ -45,11 +45,9 @@ This project started as a fork of [MacThrottle](https://github.com/angristan/Mac
 
 ## Installation
 
-Since the app is not signed, Gatekeeper may block it on first launch. You can build it locally with Xcode to sign it with your own certificate.
+Download the signed, notarized **DMG** or **ZIP** from [Releases](https://github.com/jmaddington/macping/releases/latest). MacPing updates itself after that (see [Updates](#updates)).
 
 ### Build Locally
-
-Building locally automatically signs the app with your development certificate, avoiding Gatekeeper issues.
 
 ```bash
 # Clone the repo
@@ -79,6 +77,36 @@ The app polls all enabled hosts at a configurable interval (default: 5 seconds) 
 ### Gateway Discovery
 
 On startup and when you click "Refresh", the app discovers active network interfaces and their default gateways using the system routing table. This allows it to monitor your actual network path rather than just an arbitrary external server.
+
+## Updates
+
+MacPing updates itself with [Sparkle](https://sparkle-project.org) 2. It checks once a day, and Settings has toggles for automatic checks and automatic install, plus **Check for Updates…**.
+
+- **Feed:** `SUFeedURL` points at `releases/latest/download/appcast.xml`. GitHub redirects that to the newest release, so nothing else needs hosting.
+- **Signing:** each update DMG is EdDSA-signed in CI, and the app only accepts updates that verify against `SUPublicEDKey` in `MacPing/Info.plist`.
+- **The key:** the private key's backup lives in the maintainer's login keychain (account `sparkle-macping`). **If it's lost, existing installs can't verify future updates.** Export a backup with `$(scripts/ci/sparkle-tools.sh)/generate_keys --account sparkle-macping -x macping-sparkle.key`.
+- **Versioning:** the build number is `major×1,000,000 + minor×1,000 + patch` (`scripts/set-version.sh`), so newer versions always compare higher.
+- **Upgrading Sparkle:** bump the package version in Xcode and `SPARKLE_VERSION`/`SPARKLE_SHA256` in `scripts/ci/sparkle-tools.sh` together.
+- Versions before the first Sparkle-enabled release have to update by hand once.
+
+## Releases
+
+Releases are automatic. [semantic-release](https://semantic-release.gitbook.io) runs on every push to `main`. A `feat:` commit cuts a minor release and a `fix:` commit a patch, while `chore:`/`docs:`/`style:`/`ci:` commits don't release. Each release:
+
+1. Bumps the version (`scripts/set-version.sh`) and updates `CHANGELOG.md`.
+2. Builds, signs with the Developer ID (hardened runtime), notarizes and staples the app and DMG (`scripts/build-release.sh`). This runs before the release commit and tag are pushed, so a signing failure leaves nothing half-released. CI refuses to build an unsigned release.
+3. Publishes the GitHub Release with the DMG, ZIP and `SHA256SUMS.txt`, then adds the Sparkle `appcast.xml`.
+
+Repository secrets:
+
+| Secret | What |
+|---|---|
+| `DEVELOPER_ID_APP_P12` / `DEVELOPER_ID_APP_PASSWORD` | `base64 -i DeveloperIDApplication.p12` and its password |
+| `ASC_API_KEY_P8` | Contents of `AuthKey_XXXX.p8` (App Store Connect › Users and Access › Integrations › Team Keys) |
+| `ASC_API_KEY_ID` / `ASC_API_ISSUER_ID` | From the same page |
+| `SPARKLE_ED_PRIVATE_KEY` | EdDSA key that signs updates |
+
+Troubleshooting: `Notary API key rejected … 403 … agreement` means Apple has an agreement waiting. The Account Holder accepts it at [developer.apple.com/account](https://developer.apple.com/account) and in App Store Connect › Business. It took about 10 minutes to clear last time.
 
 ## Requirements
 

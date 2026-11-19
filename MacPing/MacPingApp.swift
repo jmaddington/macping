@@ -7,6 +7,10 @@ import SwiftUI
 struct MacPingApp: App {
     @State private var monitor = LatencyMonitor()
 
+    init() {
+        Updater.shared.start()
+    }
+
     var body: some Scene {
         MenuBarExtra {
             MenuContentView(monitor: monitor)

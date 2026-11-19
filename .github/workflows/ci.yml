@@ -80,7 +80,19 @@ jobs:
         run: npm install -D semantic-release @semantic-release/changelog @semantic-release/git @semantic-release/exec
       - name: Install create-dmg
         run: brew install create-dmg
+      # AIDEV-NOTE: build-release.sh refuses to run on CI without these; a release is always signed + notarized.
+      - name: Import signing certificate and notary key
+        env:
+          DEVELOPER_ID_APP_P12: ${{ secrets.DEVELOPER_ID_APP_P12 }}
+          DEVELOPER_ID_APP_PASSWORD: ${{ secrets.DEVELOPER_ID_APP_PASSWORD }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: scripts/ci/import-certs.sh
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/macping-signing.keychain-db" || true

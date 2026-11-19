@@ -1,5 +1,7 @@
 {
-  "branches": ["main"],
+  "branches": [
+    "main"
+  ],
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
@@ -12,14 +14,16 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "./scripts/set-version.sh ${nextRelease.version}",
-        "publishCmd": "./scripts/build-release.sh ${nextRelease.version}"
+        "prepareCmd": "./scripts/set-version.sh ${nextRelease.version} && ./scripts/build-release.sh ${nextRelease.version}"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "MacPing.xcodeproj/project.pbxproj"],
+        "assets": [
+          "CHANGELOG.md",
+          "MacPing.xcodeproj/project.pbxproj"
+        ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
@@ -34,6 +38,10 @@
           {
             "path": "release/MacPing-*.zip",
             "label": "MacPing-${nextRelease.version}.zip"
+          },
+          {
+            "path": "release/SHA256SUMS.txt",
+            "label": "SHA256SUMS.txt"
           }
         ],
         "successComment": false,

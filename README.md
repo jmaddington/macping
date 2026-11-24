@@ -6,6 +6,8 @@
 
 A lightweight macOS menu bar app that monitors network latency to your gateway and custom hosts. See at a glance if your network is healthy.
 
+**Website:** https://jmaddington.github.io/macping/ (source in `docs/`, served by GitHub Pages)
+
 ## Background
 
 I've wanted an app like this for years, but didn't want to learn Swift to make it happen. With the advent of LLMs, I finally have my application.
@@ -24,7 +26,7 @@ This project started as a fork of [MacThrottle](https://github.com/angristan/Mac
 - History graph showing latency over the last 10 minutes
 - Statistics showing time spent in each latency state
 - Configurable latency thresholds (default: <50ms excellent, <100ms good, <200ms fair)
-- Configurable poll interval (1-30 seconds)
+- Configurable poll interval (1-10 seconds)
 - Notifications for:
   - Poor latency (>200ms by default)
   - Host offline/unreachable
@@ -74,7 +76,7 @@ Or open `MacPing.xcodeproj` in Xcode and press `Cmd+R` to build and run.
 
 MacLatency uses ICMP ping to measure round-trip time to monitored hosts. It automatically discovers your network gateway(s) by querying the system routing table, and you can add additional hosts to monitor.
 
-The app polls all enabled hosts at a configurable interval (default: 5 seconds) and displays the worst latency in the menu bar. Individual host latencies are shown in the dropdown menu.
+The app polls all enabled hosts at a configurable interval (default: 3 seconds) and displays the worst latency in the menu bar. Individual host latencies are shown in the dropdown menu.
 
 ### Gateway Discovery
 

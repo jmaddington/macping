@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MacPing — network latency in your menu bar</title>
+<meta name="description" content="MacPing pings your gateway and the hosts you care about, and shows your network's health in the macOS menu bar. Free, open source, signed and notarized.">
+<link rel="canonical" href="https://jmaddington.github.io/macping/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jmaddington.github.io/macping/">
+<meta property="og:title" content="MacPing — network latency in your menu bar">
+<meta property="og:description" content="Is it you, or the internet? One glance at the menu bar tells you.">
+<meta property="og:image" content="https://jmaddington.github.io/macping/media/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="media/icon.png">
+<!-- AIDEV-NOTE: same layout as Murmur's site (jmaddington/murmur docs/). Product shots are offscreen renders of the real
+     SwiftUI views with sample data; re-render them when MenuContentView changes. -->
+<style>
+:root {
+  --bg: #fafbfa; --card: #ffffff; --ink: #141816; --ink2: #56605b; --ink3: #6f7a74;
+  --line: rgba(15,25,20,.09); --accent: #0f8a44;
+  --brand: linear-gradient(100deg, #14a350 0%, #d19a00 42%, #f0700f 70%, #e5383b 100%);
+  --shadow: 0 1px 2px rgba(15,25,20,.06), 0 12px 40px rgba(15,60,35,.09);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0c0f0d; --card: #171b19; --ink: #f0f5f2; --ink2: #aab5af; --ink3: #87928c; --accent: #4ade80;
+          --line: rgba(255,255,255,.09); --shadow: 0 1px 2px rgba(0,0,0,.4), 0 16px 50px rgba(0,0,0,.45);
+          --brand: linear-gradient(100deg, #4ade64 0%, #ffd60a 42%, #ff9f0a 70%, #ff453a 100%); }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* Nav */
+nav { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px);
+      background: color-mix(in srgb, var(--bg) 72%, transparent); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; height: 56px; gap: 28px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; letter-spacing: -.01em; }
+.brand img { width: 28px; height: 28px; }
+nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; }
+nav .links a { text-decoration: none; color: var(--ink2); }
+nav .links a:hover { color: var(--ink); }
+
+/* Hero */
+.hero { position: relative; padding: 80px 0 90px; text-align: center; overflow: hidden; }
+.hero::before { content: ""; position: absolute; inset: -40% -10% auto; height: 620px; background: var(--brand); opacity: .13; filter: blur(90px); border-radius: 50%; z-index: -1; }
+.hero .icon { width: 104px; height: 104px; filter: drop-shadow(0 16px 26px rgba(0,0,0,.28)); }
+h1 { font-size: clamp(42px, 7vw, 78px); line-height: 1.04; letter-spacing: -.035em; margin: 20px 0 16px; font-weight: 800; }
+h1 .grad { background: var(--brand); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .08em; }
+.lede { font-size: clamp(18px, 2.2vw, 22px); color: var(--ink2); max-width: 660px; margin: 0 auto 30px; }
+.cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; font-weight: 600; font-size: 15px; text-decoration: none; transition: transform .15s ease; }
+.btn:hover { transform: translateY(-1px); }
+.btn.primary { background: var(--ink); color: var(--bg); box-shadow: var(--shadow); }
+.btn.ghost { border: 1px solid var(--line); background: var(--card); }
+.meta { margin-top: 16px; font-size: 13px; color: var(--ink3); }
+
+/* Stage: a menu bar with the real dropdown under it */
+.stage { margin: 48px auto 0; max-width: 1000px; border-radius: 18px; overflow: hidden; position: relative; text-align: left;
+         background: radial-gradient(120% 120% at 85% 10%, #1f6b52 0%, #14423a 38%, #0c2230 100%); box-shadow: 0 30px 80px rgba(8,40,30,.35), 0 0 0 1px var(--line); }
+.menubar { display: flex; align-items: center; justify-content: flex-end; gap: 16px; height: 40px; padding: 0 20px; background: rgba(10,16,16,.55); color: #fff; font: 500 13px -apple-system, system-ui; }
+.menubar .item { display: grid; border-radius: 6px; background: rgba(255,255,255,.16); }
+.menubar .item img { grid-area: 1/1; height: 28px; width: auto; justify-self: center; }
+.scene { display: grid; grid-template-columns: 1fr 300px; gap: 40px; padding: 10px 56px 48px 48px; align-items: center; }
+.drop { display: grid; }
+.drop img { grid-area: 1/1; width: 300px; height: auto; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.14); }
+.fade { opacity: 0; transition: opacity .45s ease; }
+.fade.on { opacity: 1; }
+.say { color: #eafff4; }
+.say .txt { display: grid; min-height: 190px; align-items: end; }
+.say .txt > div { grid-area: 1/1; }
+.say strong { display: block; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.02em; line-height: 1.15; margin-bottom: 10px; }
+.say span { color: #b9d6c9; font-size: 16px; display: block; max-width: 400px; }
+.tabs { display: flex; gap: 8px; margin-top: 24px; flex-wrap: wrap; }
+.tabs button { border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); color: #eafff4; border-radius: 999px; padding: 9px 15px; font: 600 13px -apple-system, system-ui; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: #eafff4; color: #0c2b22; border-color: #eafff4; }
+.tabs button:focus-visible { outline-color: #fff; }
+
+/* Sections */
+section { padding: 96px 0 0; }
+.hero + section { padding-top: 16px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h2 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -.025em; line-height: 1.1; margin: 8px 0 14px; }
+.sub { color: var(--ink2); font-size: 18px; max-width: 660px; margin: 0 0 36px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: var(--shadow); min-width: 0; }
+.card .ic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: #fff; margin-bottom: 14px; }
+.card .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.card h3 { margin: 0 0 6px; font-size: 17px; letter-spacing: -.01em; }
+.card p { margin: 0; color: var(--ink2); font-size: 14.5px; }
+
+/* States */
+.states { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.state { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+.state .bar { height: 92px; display: grid; place-items: center; background: linear-gradient(160deg, #1d2b27, #10191a); }
+.state .bar img { height: 38px; width: auto; }
+.state div.t { padding: 12px 14px 14px; border-top: 4px solid var(--c); }
+.state b { display: block; font-size: 15px; }
+.state span { color: var(--ink2); font-size: 13.5px; }
+@media (max-width: 900px) { .states { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } }
+
+/* Pipeline */
+.pipe { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; }
+.step { flex: 1 1 160px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.step b { display: block; font-size: 15px; margin-bottom: 4px; }
+.step span { color: var(--ink2); font-size: 13.5px; }
+.step .n { font: 700 12px -apple-system, system-ui; color: var(--accent); margin-bottom: 8px; display: block; }
+
+/* Gallery */
+.shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; align-items: start; }
+.shots figure { margin: 0; }
+.shots img { width: 100%; height: auto; border-radius: 14px; box-shadow: var(--shadow); border: 1px solid var(--line); display: block; }
+figcaption { font-size: 13px; color: var(--ink2); padding: 10px 2px 0; }
+@media (max-width: 900px) { .shots { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 760px) {
+  nav .links a:not(.gh) { display: none; }
+  .scene { grid-template-columns: 1fr; padding: 10px 20px 32px; gap: 28px; justify-items: center; }
+  .drop img { width: min(300px, 100%); }
+  .say { order: 2; width: 100%; } .say .txt { min-height: 0; align-items: start; }
+}
+@media (max-width: 480px) { .shots { grid-template-columns: 1fr; } .wrap { padding: 0 16px; } }
+
+/* Privacy + install */
+.privacy { display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center; }
+@media (max-width: 760px) { .privacy { grid-template-columns: 1fr; gap: 0; } }
+.privacy ul { list-style: none; padding: 0; margin: 0; }
+.privacy li { padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--ink2); }
+.privacy li b { color: var(--ink); }
+.install { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+pre { margin: 12px 0 0; padding: 14px 16px; border-radius: 12px; background: #101614; color: #dff5e8; font: 13px/1.6 ui-monospace, "SF Mono", Menlo, monospace; overflow-x: auto; }
+footer { padding: 90px 0 50px; color: var(--ink3); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .fade, .btn { transition: none; } .btn:hover { transform: none; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="media/icon.png" alt="">MacPing</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#screens">Screenshots</a>
+      <a href="#install">Install</a>
+      <a class="gh" href="https://github.com/jmaddington/macping">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="icon" src="media/icon.png" alt="MacPing icon: a latency gauge running from green to red">
+    <h1>Is it you,<br><span class="grad">or the internet?</span></h1>
+    <p class="lede">MacPing pings your router and the hosts you care about, and keeps the answer in your menu bar.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jmaddington/macping/releases/latest">Download for Mac</a>
+      <a class="btn ghost" href="https://github.com/jmaddington/macping">View source</a>
+    </div>
+    <div class="meta">macOS 15 or later · Apple silicon · Signed &amp; notarized · Free, MIT licensed</div>
+
+    <div class="stage" id="stage">
+      <div class="menubar">
+        <div class="item">
+          <img class="fade on" data-s="0" src="media/hero-good.png" alt="">
+          <img class="fade" data-s="1" src="media/hero-poor.png" alt="">
+          <img class="fade" data-s="2" src="media/hero-offline.png" alt="">
+        </div>
+        <span>9:41</span>
+      </div>
+      <div class="scene">
+        <div class="say">
+          <div class="txt">
+            <div class="fade on" data-s="0"><strong>All green.</strong><span>The router and both hosts answer quickly. You can still see the spikes from a few minutes ago.</span></div>
+            <div class="fade" data-s="1" aria-hidden="true"><strong>It's not your Wi‑Fi.</strong><span>The router answers in 3 ms and Cloudflare in 16. The VPN is the slow one.</span></div>
+            <div class="fade" data-s="2" aria-hidden="true"><strong>The VPN is down.</strong><span>Everything else still answers, so there's no need to restart the router.</span></div>
+          </div>
+          <div class="tabs" role="group" aria-label="Example network states">
+            <button type="button" aria-pressed="true">All good</button>
+            <button type="button" aria-pressed="false">Slow VPN</button>
+            <button type="button" aria-pressed="false">VPN down</button>
+          </div>
+        </div>
+        <div class="drop">
+          <img class="fade on" data-s="0" src="media/menu-dark.png" width="840" height="1491" alt="MacPing menu: status Excellent, every host green">
+          <img class="fade" data-s="1" aria-hidden="true" src="media/menu-poor-dark.png" width="840" height="1491" alt="MacPing menu: status Poor, Office VPN at 232 ms, other hosts green">
+          <img class="fade" data-s="2" aria-hidden="true" src="media/menu-offline-dark.png" width="840" height="1491" alt="MacPing menu: status Offline, Office VPN unreachable, other hosts green">
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">Features</div>
+    <h2>Your network, at a glance.</h2>
+    <p class="sub">A small native app that watches the path from your Mac outward, so you know where the trouble is.</p>
+    <div class="grid">
+      <div class="card"><div class="ic" style="background:#16a34a"><svg viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0M12 19.5h.01"/></svg></div><h3>A menu bar that tells you</h3><p>Green, yellow, orange or red, with the latency beside it. Show the icon, a smooth color gradient, the number, or icon and number.</p></div>
+      <div class="card"><div class="ic" style="background:#2f7cf6"><svg viewBox="0 0 24 24"><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 16.5h.01M11 16.5h.01M16 13V8M12.5 6a5 5 0 0 1 7 0"/></svg></div><h3>Finds your router</h3><p>Reads the routing table to find the gateway on every active interface. Nothing to configure.</p></div>
+      <div class="card"><div class="ic" style="background:#0ea5a5"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div><h3>Any host you like</h3><p>Add your VPN, your server or a public DNS resolver by IP address or name, and label it.</p></div>
+      <div class="card"><div class="ic" style="background:#8b5cf6"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 4-8 5 9"/><path d="M3 21h18"/></svg></div><h3>Ten minutes of history</h3><p>One line per host, shaded by overall status. Hover over any moment to see every host's latency.</p></div>
+      <div class="card"><div class="ic" style="background:#f59e0b"><svg viewBox="0 0 24 24"><path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 14l4-5"/></svg></div><h3>Your idea of slow</h3><p>Set your own cutoffs for excellent, good and fair. Poll as often as every second or as rarely as every ten.</p></div>
+      <div class="card"><div class="ic" style="background:#ef4444"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg></div><h3>Alerts without the noise</h3><p>Hear about poor, offline and recovered hosts. Add a delay so blips stay quiet, or mute any host you added.</p></div>
+      <div class="card"><div class="ic" style="background:#14b8a6"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div><h3>Pick what the icon follows</h3><p>By default the menu bar shows the worst host. Click the target next to a host to follow just that one.</p></div>
+      <div class="card"><div class="ic" style="background:#64748b"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-5L3 9M3 4v5h5M4 13a8 8 0 0 0 14 5l3-3M21 20v-5h-5"/></svg></div><h3>Keeps itself current</h3><p>Checks for signed updates once a day, and installs them for you if you want.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The menu bar</div>
+    <h2>Five states, one look.</h2>
+    <p class="sub">These are the default thresholds, and you can change them.</p>
+    <div class="states">
+      <div class="state" style="--c:#30d158"><div class="bar"><img src="media/bar-excellent-dark.png" alt="Green Wi-Fi icon, 12ms"></div><div class="t"><b>Excellent</b><span>Under 50 ms</span></div></div>
+      <div class="state" style="--c:#ffd60a"><div class="bar"><img src="media/bar-good-dark.png" alt="Yellow Wi-Fi icon, 72ms"></div><div class="t"><b>Good</b><span>50 to 100 ms</span></div></div>
+      <div class="state" style="--c:#ff9f0a"><div class="bar"><img src="media/bar-fair-dark.png" alt="Orange Wi-Fi warning icon, 148ms"></div><div class="t"><b>Fair</b><span>100 to 200 ms</span></div></div>
+      <div class="state" style="--c:#ff453a"><div class="bar"><img src="media/bar-poor-dark.png" alt="Red Wi-Fi warning icon, 236ms"></div><div class="t"><b>Poor</b><span>200 ms and up</span></div></div>
+      <div class="state" style="--c:#ff453a"><div class="bar"><img src="media/bar-offline-dark.png" alt="Red crossed-out Wi-Fi icon"></div><div class="t"><b>Offline</b><span>No reply in 2 seconds</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>Plain ping, done well.</h2>
+    <p class="sub">MacPing uses the tools already on your Mac, and needs no admin rights.</p>
+    <div class="pipe">
+      <div class="step"><span class="n">01</span><b>Discover</b><span>Find each gateway in the routing table.</span></div>
+      <div class="step"><span class="n">02</span><b>Ping</b><span>Ping every host at once, every 3 seconds by default.</span></div>
+      <div class="step"><span class="n">03</span><b>Grade</b><span>Compare each reply to your thresholds.</span></div>
+      <div class="step"><span class="n">04</span><b>Show</b><span>Put the worst one, or the one you chose, in the menu bar.</span></div>
+      <div class="step"><span class="n">05</span><b>Alert</b><span>Notify you if it stays bad past your delay.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="eyebrow">Screenshots</div>
+    <h2>Native, in light and dark.</h2>
+    <p class="sub">SwiftUI throughout. Everything is in one menu. Shown here with sample hosts.</p>
+    <div class="shots">
+      <figure><img src="media/menu-light.png" width="840" height="1491" alt="Main menu in light mode" loading="lazy"><figcaption>Hosts, history and time in each state</figcaption></figure>
+      <figure><img src="media/menu-poor-dark.png" width="840" height="1491" alt="Main menu in dark mode with a slow host" loading="lazy"><figcaption>A slow host stands out right away</figcaption></figure>
+      <figure><img src="media/notify-dark.png" width="840" height="1779" alt="Notification options" loading="lazy"><figcaption>Choose which changes notify you</figcaption></figure>
+      <figure><img src="media/settings-light.png" width="840" height="2340" alt="Settings" loading="lazy"><figcaption>Display, polling, thresholds and updates</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap privacy">
+    <div>
+      <div class="eyebrow">Privacy</div>
+      <h2>It pings. That's it.</h2>
+      <p class="sub">The only traffic is pings to the hosts you see, name lookups for them, and the update check on GitHub, which you can turn off.</p>
+    </div>
+    <ul>
+      <li><b>No account</b> and no sign-in</li>
+      <li><b>No analytics</b> or tracking</li>
+      <li><b>No admin rights</b> needed</li>
+      <li><b>History stays in memory</b> and is gone when you quit</li>
+      <li><b>Open source</b> under the MIT license</li>
+    </ul>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="eyebrow">Install</div>
+    <h2>Up and running in a minute.</h2>
+    <p class="sub">Open it and look for the Wi‑Fi icon in your menu bar. Allow notifications if you want alerts.</p>
+    <div class="install">
+      <div class="card"><h3>Disk image</h3><p>Drag MacPing into Applications.</p>
+        <p style="margin-top:14px"><a class="btn primary" href="https://github.com/jmaddington/macping/releases/latest">Download .dmg</a></p></div>
+      <div class="card"><h3>Zip archive</h3><p>The same signed app, without the disk image.</p>
+        <p style="margin-top:14px"><a class="btn ghost" href="https://github.com/jmaddington/macping/releases/latest">Download .zip</a></p></div>
+      <div class="card"><h3>Build from source</h3><p>You need Xcode.</p>
+<pre>git clone https://github.com/jmaddington/macping
+cd macping
+xcodebuild -project MacPing.xcodeproj \
+  -scheme MacPing -configuration Release \
+  -derivedDataPath build
+open build/Build/Products/Release/MacPing.app</pre></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">MacPing · <a href="https://github.com/jmaddington/macping">github.com/jmaddington/macping</a> · Began as a fork of <a href="https://github.com/angristan/MacThrottle">MacThrottle</a></div>
+</footer>
+
+<script>
+  const stage = document.getElementById('stage'), tabs = [...stage.querySelectorAll('.tabs button')];
+  let cur = 0, timer;
+  function show(i) {
+    cur = i;
+    stage.querySelectorAll('[data-s]').forEach(el => {
+      const on = +el.dataset.s === i;
+      el.classList.toggle('on', on);
+      on ? el.removeAttribute('aria-hidden') : el.setAttribute('aria-hidden', 'true');
+    });
+    tabs.forEach((t, k) => t.setAttribute('aria-pressed', k === i));
+  }
+  const stop = () => clearInterval(timer);
+  tabs.forEach((t, i) => t.addEventListener('click', () => { stop(); show(i); }));
+  stage.addEventListener('pointerenter', stop);
+  stage.addEventListener('focusin', stop);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(() => show((cur + 1) % 3), 4500);
+</script>
+</body>
+</html>

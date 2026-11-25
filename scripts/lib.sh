@@ -24,6 +24,41 @@ step() {
   return 0
 }
 
+# watched LABEL SECONDS cmd args...: like step, but kills a stalled command (exit 124) after printing evidence.
+# AIDEV-NOTE: xcodebuild hung silently twice in the v1.2.0 release job, cause unknown; the sample is for diagnosis.
+watched() {
+  local label=$1 limit=$2 log pid rc=0 start=$SECONDS
+  shift 2
+  log=$(mktemp)
+  "$@" > "$log" 2>&1 < /dev/null &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if (( SECONDS - start >= limit )); then
+      echo "$label: no result after ${limit}s, stopping it [WATCHED-STALL]"
+      # Only our own process: on a dev Mac other xcodebuilds may be running.
+      [[ -n "${GITHUB_ACTIONS:-}" ]] && { ps -axo pid,ppid,stat,etime,command | grep -E 'xcodebuild|XCBBuild|SWBBuild|swift|git ' | grep -v grep | cut -c1-200 || true; }
+      sample "$pid" 3 -file "$log.sample" > /dev/null 2>&1 && head -150 "$log.sample" | cut -c1-180
+      echo "--- last output"; tail -25 "$log"
+      pkill -9 -P "$pid" 2>/dev/null || true
+      kill -9 "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      rm -f "$log" "$log.sample"
+      annotate warning "$label stalled" "Killed after ${limit}s; see the process sample in the log."
+      return 124
+    fi
+    sleep 2
+  done
+  wait "$pid" || rc=$?
+  if (( rc != 0 )); then
+    cat "$log"
+    annotate error "$label failed" "$(tail -25 "$log")"
+  elif [[ -n "${VERBOSE:-}" ]]; then
+    cat "$log"
+  fi
+  rm -f "$log"
+  return "$rc"
+}
+
 # notarize FILE [STAPLE_TARGET]: submit, wait, staple; on rejection annotate Apple's issue log.
 # Needs NOTARY_KEY_PATH NOTARY_KEY_ID NOTARY_ISSUER, or NOTARY_PROFILE (a `notarytool store-credentials`
 # keychain profile, for local use). STAPLE_TARGET defaults to FILE.

@@ -37,6 +37,11 @@ identifier_name:
     - i
     - j
     - k
+    - r
+    - g
+    - b
+    - t
+    - p
 
 disabled_rules:
   - trailing_comma

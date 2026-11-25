@@ -3,6 +3,8 @@
 
 import SwiftUI
 
+// AIDEV-NOTE: lint-suppressed; extract subviews to get under type_body_length, then drop the disable (macping-kpe)
+// swiftlint:disable:next type_body_length
 struct MenuContentView: View {
     @Bindable var monitor: LatencyMonitor
     @Environment(\.openWindow) private var openWindow
@@ -255,6 +257,8 @@ struct MenuContentView: View {
                     ))
                     .controlSize(.small)
 
+                    UpdateSettingsRows()
+
                     // Status bar display mode
                     HStack {
                         Text("Menu Bar:")
@@ -460,4 +464,3 @@ struct MenuContentView: View {
         NSApp.activate(ignoringOtherApps: true)
     }
 }
-

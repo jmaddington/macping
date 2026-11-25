@@ -1,3 +1,25 @@
+# [1.2.0](https://github.com/jmaddington/macping/compare/v1.1.0...v1.2.0) (2026-11-25)
+
+### Bug Fixes
+
+* cache moving average and clean up stale readings ([28e0dad](https://github.com/jmaddington/macping/commit/28e0dadb9b2ddae929470c9f3124c89ec57d76f0))
+* **ci:** disable semantic-release issue comments [AI] ([53277d2](https://github.com/jmaddington/macping/commit/53277d2b33d8cb9dec3f90a640c93db157ecb513))
+* correct GitHub URL in About view [AI] ([1dc03c6](https://github.com/jmaddington/macping/commit/1dc03c667c221e263e74aca8e50794577d61c6b9))
+* notification toggle label now updates when threshold changes ([90e019a](https://github.com/jmaddington/macping/commit/90e019a89d2557e31f2f89fb3ab1e914cb885a5d)), closes [#5](https://github.com/jmaddington/macping/issues/5)
+* validate thresholds to prevent Range crash ([f030b1f](https://github.com/jmaddington/macping/commit/f030b1f806200a2f054cf386225f87ebcdf5d3d8))
+
+### Features
+
+* add configurable menu bar update interval ([ddda82c](https://github.com/jmaddington/macping/commit/ddda82cfe6dc62b37894ceb30b7632d75a3bbb70))
+* add gradient icon mode for smooth color transitions ([f5b6226](https://github.com/jmaddington/macping/commit/f5b622667929714bcd057641ef80db1aaa4f9b32))
+* add notification delay/debouncing [AI] ([a9fb789](https://github.com/jmaddington/macping/commit/a9fb78975dc04cdb7e6c05aefd32d3d07e386cc0))
+* add per-host notification settings [AI] ([1d958f2](https://github.com/jmaddington/macping/commit/1d958f23dd2ddd1bc0cf1117b93da96923174ad7))
+* add status bar display options with moving average ([e641769](https://github.com/jmaddington/macping/commit/e6417699a2d870f9341615be550d951678b7f7aa))
+* allow users to disable auto-gateway discovery ([4311265](https://github.com/jmaddington/macping/commit/4311265dfe196a1162f2e67fbfec9fec8baecd40))
+* auto-update via Sparkle 2 [AI] ([32872fc](https://github.com/jmaddington/macping/commit/32872fce935703ea3cb77b7f7978a4a545cd65e3))
+* make Settings and Notifications sections collapsible ([71a08f7](https://github.com/jmaddington/macping/commit/71a08f7e4d1304f38978464331dfbad7da624c0e))
+* replace thermometer icon with speedometer gauge [AI] ([bac70f5](https://github.com/jmaddington/macping/commit/bac70f5f2720d03376b9c6778e6cf644143bd8e8))
+
 # [1.1.0](https://github.com/jmaddington/maclatency/compare/v1.0.0...v1.1.0) (2025-12-31)
 
 

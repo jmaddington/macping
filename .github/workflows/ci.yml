@@ -62,6 +62,7 @@ jobs:
   release:
     name: Release
     runs-on: macos-26
+    timeout-minutes: 90
     needs: [commitlint, lint, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
@@ -82,6 +83,10 @@ jobs:
         run: npm install --no-save semantic-release@26.0.1 @semantic-release/changelog@7.0.0 @semantic-release/git@11.0.1 @semantic-release/exec@7.1.0
       - name: Install create-dmg
         run: brew install create-dmg
+      # Fetch Sparkle while no signing key is loaded; build-release.sh then reuses build/SourcePackages.
+      - name: Resolve Swift packages
+        timeout-minutes: 5
+        run: xcodebuild -project MacPing.xcodeproj -scheme MacPing -derivedDataPath build -resolvePackageDependencies
       # AIDEV-NOTE: build-release.sh refuses to run on CI without these; a release is always signed + notarized.
       # AIDEV-NOTE: npm deps are version-pinned because semantic-release runs while the signing keychain is unlocked.
       - name: Import signing certificate and notary key

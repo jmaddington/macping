@@ -26,8 +26,13 @@ if [[ -n "${GITHUB_ACTIONS:-}" && ( -z "$IDENTITY" || -z "${NOTARY_KEY_PATH:-}" 
 fi
 
 # Build unsigned, then sign explicitly: the project uses Automatic signing with no team set.
-step "xcodebuild" xcodebuild -project MacPing.xcodeproj -scheme MacPing -configuration Release \
-  -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO clean build
+# A normal run takes about a minute; retry once if it stalls or a package download fails.
+build_app() {
+  watched "xcodebuild" "${XCODEBUILD_TIMEOUT:-300}" xcodebuild -project MacPing.xcodeproj -scheme MacPing \
+    -configuration Release -derivedDataPath build \
+    CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO clean build
+}
+build_app || { echo "xcodebuild did not succeed, retrying once"; build_app; }
 
 APP_PATH="build/Build/Products/Release/MacPing.app"
 [[ -d "$APP_PATH" ]] || { echo "Error: App not found at $APP_PATH"; exit 1; }
